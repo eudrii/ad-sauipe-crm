@@ -1,7 +1,4 @@
 import './style.css';
-
-// --- State & History ---
-// --- Supabase Config ---
 import { supabase } from './lib/supabase.js';
 
 const CONGREGRACOES = [
@@ -40,55 +37,54 @@ function getNthDayOfMonth(year, month, nth, dayOfWeek) {
     return null;
 }
 
-async function carregarMembros() {
-   const { data, error } = await supabase.from('membros').select('*');
-   if (error) {
-      console.error("Erro ao carregar membros:", error);
-      return [];
-   }
-   return data;
+// --- localStorage (cache local para undo/redo e offline) ---
+function salvarMembrosLocal() {
+   localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
 }
 
-async function carregarEventos() {
-   const { data, error } = await supabase.from('eventos').select('*');
-   if (error) {
-      console.error("Erro ao carregar eventos:", error);
-      return [];
-   }
-   return data;
+function salvarEventosLocal() {
+   localStorage.setItem('ad_sauipe_eventos', JSON.stringify(eventos));
 }
 
-// Note: Initial state comes from localStorage above, then updated by initApp()
-
-async function salvarMembroSupabase(membro) {
-   const { error } = await supabase.from('membros').upsert(membro);
-   if (error) console.error("Erro ao salvar membro:", error);
+// --- Supabase CRUD ---
+async function dbSalvarMembro(m) {
+   const { error } = await supabase.from('membros').upsert(m);
+   if (error) console.error('Erro salvarMembro:', error.message);
 }
 
-async function salvarEventoSupabase(evento) {
-   const { error } = await supabase.from('eventos').upsert(evento);
-   if (error) console.error("Erro ao salvar evento:", error);
-}
-
-async function excluirMembroSupabase(id) {
+async function dbExcluirMembro(id) {
    const { error } = await supabase.from('membros').delete().eq('id', id);
-   if (error) console.error("Erro ao excluir membro:", error);
+   if (error) console.error('Erro excluirMembro:', error.message);
 }
 
-async function excluirEventoSupabase(id) {
+async function dbSalvarEvento(ev) {
+   const { error } = await supabase.from('eventos').upsert(ev);
+   if (error) console.error('Erro salvarEvento:', error.message);
+}
+
+async function dbExcluirEvento(id) {
    const { error } = await supabase.from('eventos').delete().eq('id', id);
-   if (error) console.error("Erro ao excluir evento:", error);
+   if (error) console.error('Erro excluirEvento:', error.message);
+}
+
+// Wrapper síncrono para uso normal — salva local imediatamente, envia ao Supabase em background
+function salvarMembros() {
+   salvarMembrosLocal();
+   // fire-and-forget para cada membro modificado recentemente — pushHistory chama isso
+}
+
+function salvarEventos() {
+   salvarEventosLocal();
 }
 
 function pushHistory() {
     const stateStr = JSON.stringify(membros);
-    if(stateStr === historyStack[historyIndex]) return; // no changes
+    if(stateStr === historyStack[historyIndex]) return;
     historyStack = historyStack.slice(0, historyIndex + 1);
     historyStack.push(stateStr);
-    if(historyStack.length > 50) historyStack.shift(); 
+    if(historyStack.length > 50) historyStack.shift();
     historyIndex = historyStack.length - 1;
-    // Local cache only for history
-    localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
+    salvarMembros();
 }
 
 document.addEventListener('keydown', (e) => {
@@ -97,7 +93,7 @@ document.addEventListener('keydown', (e) => {
         if (historyIndex > 0) {
             historyIndex--;
             membros = JSON.parse(historyStack[historyIndex]);
-            localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
+            salvarMembros();
             renderCRM();
             if(document.getElementById('modal-editar').style.display === 'block') {
                abrirEdicao(document.getElementById('edit-id').value);
@@ -108,7 +104,7 @@ document.addEventListener('keydown', (e) => {
         if (historyIndex < historyStack.length - 1) {
             historyIndex++;
             membros = JSON.parse(historyStack[historyIndex]);
-            localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
+            salvarMembros();
             renderCRM();
             if(document.getElementById('modal-editar').style.display === 'block') {
                abrirEdicao(document.getElementById('edit-id').value);
@@ -466,24 +462,18 @@ btnConfirmarCorrigir.addEventListener('click', () => {
     modalConfirmar.style.display = 'none';
 });
 
-btnConfirmarEnviar.addEventListener('click', async () => {
-    if(!pendingMembro) return;
-    
-    btnConfirmarEnviar.disabled = true;
-    btnConfirmarEnviar.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Enviando...';
-    
-    membros.push(pendingMembro);
-    await salvarMembroSupabase(pendingMembro);
-    
-    btnConfirmarEnviar.disabled = false;
-    btnConfirmarEnviar.innerHTML = '<i class="ri-check-double-line"></i> Confirmar e Enviar';
-    
+btnConfirmarEnviar.addEventListener('click', () => {
+    if (!pendingMembro) return;
+    const m = pendingMembro;
+    pendingMembro = null;
+    membros.push(m);
+    salvarMembros();
+    dbSalvarMembro(m); // background sync
     modalConfirmar.style.display = 'none';
     memberForm.reset();
     listaCargos.innerHTML = '';
     adicionarCampoCargo();
     switchView('success');
-    pendingMembro = null;
 });
 
 // --- CRM Dashboard ---
@@ -600,11 +590,12 @@ function renderCRM() {
   // Bind Buttons
   document.querySelectorAll('.btn-carteirinha').forEach(btn => btn.addEventListener('click', (e) => abrirCarteirinha(e.currentTarget.getAttribute('data-id'))));
   document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+    btn.addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
       if (confirm('Tem certeza que deseja excluir este membro?')) {
         membros = membros.filter(m => m.id !== id);
-        await excluirMembroSupabase(id);
+        salvarMembros();
+        dbExcluirMembro(id); // background sync
         renderCRM();
       }
     });
@@ -801,17 +792,17 @@ document.getElementById('btn-edit-add-cargo').addEventListener('click', () => {
 
 // Auto Save triggers
 const editForm = document.getElementById('edit-form-membro');
-editForm.addEventListener('change', async () => {
+editForm.addEventListener('change', () => {
    processAutoSave();
    pushHistory();
+   renderCRM();
    const id = document.getElementById('edit-id').value;
    const m = membros.find(x => x.id === id);
-   if (m) await salvarMembroSupabase(m);
-   renderCRM(); 
+   if (m) dbSalvarMembro(m); // background sync
 });
 editForm.addEventListener('keyup', () => {
    processAutoSave();
-   localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
+   salvarMembros();
 });
 
 
@@ -1137,7 +1128,7 @@ function abrirModalEvento(idEvento = null) {
 }
 
 const formEvento = document.getElementById('form-evento');
-formEvento.addEventListener('submit', async (e) => {
+formEvento.addEventListener('submit', (e) => {
    e.preventDefault();
 
    const evId = document.getElementById('ev-id').value;
@@ -1145,34 +1136,7 @@ formEvento.addEventListener('submit', async (e) => {
    const autorNome = document.getElementById('ev-autor').value.trim().toUpperCase();
    const agora = new Date().toISOString();
 
-   const submitBtn = e.target.querySelector('button[type="submit"]');
-   submitBtn.disabled = true;
-   submitBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Salvando...';
-
-   let finalCartazUrl = cartazBase64;
-
-   // 1. Upload to Storage if it's a new Base64 image
-   if (cartazBase64 && cartazBase64.startsWith('data:image')) {
-       try {
-           const blob = await (await fetch(cartazBase64)).blob();
-           const fileName = `poster-${Date.now()}.webp`;
-           const { data, error } = await supabase.storage
-               .from('posters')
-               .upload(fileName, blob, { contentType: 'image/webp' });
-           
-           if (error) throw error;
-           
-           const { data: { publicUrl } } = supabase.storage
-               .from('posters')
-               .getPublicUrl(fileName);
-           
-           finalCartazUrl = publicUrl;
-       } catch (err) {
-           console.error("Erro no upload do cartaz:", err);
-           alert("Erro ao subir a imagem. O evento será salvo sem cartaz.");
-           finalCartazUrl = '';
-       }
-   }
+   const finalCartazUrl = cartazBase64; // base64 stored directly in localStorage
 
    const regras = {
       tipo: document.getElementById('ev-tipo-data').value,
@@ -1235,10 +1199,11 @@ formEvento.addEventListener('submit', async (e) => {
       eventos.push(evObj);
    }
 
-   if (evObj) await salvarEventoSupabase(evObj);
+   if (evObj) {
+      salvarEventos();
+      dbSalvarEvento(evObj); // background sync
+   }
 
-   submitBtn.disabled = false;
-   submitBtn.innerHTML = '<span id="ev-submit-label">Salvar Evento</span> <i class="ri-save-line" style="margin-left:5px;"></i>';
    modalEvento.style.display = 'none';
    renderEventos();
 });
@@ -1445,12 +1410,13 @@ function renderEventos() {
         });
 
         grid.querySelectorAll('.btn-del-evt').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const id = e.currentTarget.getAttribute('data-id');
                 if (confirm('Excluir este evento? Todas as ocorrências serão removidas.')) {
                     eventos = eventos.filter(ev => ev.id !== id);
-                    await excluirEventoSupabase(id);
+                    salvarEventos();
+                    dbExcluirEvento(id); // background sync
                     renderEventos();
                 }
             });
@@ -1602,47 +1568,83 @@ printStyle.innerHTML = `
 document.head.appendChild(printStyle);
 btnPrint.addEventListener('click', () => window.print());
 
-// --- Migration & Boot ---
+// --- Boot ---
 async function initApp() {
+    // Splash screen
     const splash = document.createElement('div');
-    splash.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-main); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center;";
+    splash.id = 'splash-screen';
+    splash.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-main);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
     splash.innerHTML = `
-        <i class="ri-fire-fill fire-icon" style="font-size:4rem; margin-bottom:1rem;"></i>
-        <p style="color:var(--text-main); font-weight:600;">Conectando ao Supabase...</p>
-        <div style="margin-top:20px; width:200px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px; overflow:hidden;">
-            <div style="width:30%; height:100%; background:var(--primary); animation: loadingBar 2s infinite ease-in-out;"></div>
+        <i class="ri-fire-fill" style="font-size:4rem;color:var(--primary);filter:drop-shadow(0 0 16px rgba(234,88,12,0.5));"></i>
+        <p style="color:var(--text-main);font-weight:700;font-size:1.1rem;">AD Sauípe</p>
+        <p id="splash-msg" style="color:var(--text-muted);font-size:0.9rem;">Carregando dados...</p>
+        <div style="width:180px;height:3px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden;margin-top:6px;">
+            <div style="width:40%;height:100%;background:var(--primary);border-radius:2px;animation:splashBar 1.2s infinite ease-in-out;"></div>
         </div>
-        <style>@keyframes loadingBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }</style>
+        <style>@keyframes splashBar{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}</style>
     `;
     document.body.appendChild(splash);
 
-    membros = await carregarMembros();
-    eventos = await carregarEventos();
+    const setSplashMsg = (msg) => {
+        const el = document.getElementById('splash-msg');
+        if (el) el.textContent = msg;
+    };
 
-    // Migration logic
-    const oldMembros = JSON.parse(localStorage.getItem('ad_sauipe_membros') || '[]');
-    const oldEventos = JSON.parse(localStorage.getItem('ad_sauipe_eventos') || '[]');
+    try {
+        setSplashMsg('Buscando membros...');
+        const { data: dbMembros, error: errM } = await supabase.from('membros').select('*');
+        if (errM) throw errM;
 
-    if (membros.length === 0 && oldMembros.length > 0) {
-        console.log("Migrando membros do localStorage para o Supabase...");
-        for(let m of oldMembros) {
-            await salvarMembroSupabase(m);
+        setSplashMsg('Buscando eventos...');
+        const { data: dbEventos, error: errE } = await supabase.from('eventos').select('*');
+        if (errE) throw errE;
+
+        membros = dbMembros || [];
+        eventos = dbEventos || [];
+
+        // Migra dados do localStorage para o Supabase (primeira vez)
+        const localMembros = JSON.parse(localStorage.getItem('ad_sauipe_membros') || '[]');
+        const localEventos = JSON.parse(localStorage.getItem('ad_sauipe_eventos') || '[]');
+
+        if (membros.length === 0 && localMembros.length > 0) {
+            setSplashMsg('Migrando membros locais...');
+            for (const m of localMembros) await dbSalvarMembro(m);
+            const { data } = await supabase.from('membros').select('*');
+            membros = data || localMembros;
         }
-        membros = await carregarMembros();
+
+        if (eventos.length === 0 && localEventos.length > 0) {
+            setSplashMsg('Migrando eventos locais...');
+            for (const ev of localEventos) await dbSalvarEvento(ev);
+            const { data } = await supabase.from('eventos').select('*');
+            eventos = data || localEventos;
+        }
+
+        // Atualiza cache local
+        salvarMembrosLocal();
+        salvarEventosLocal();
+
+    } catch (err) {
+        console.warn('Supabase indisponível, usando cache local:', err.message);
+        // Fallback: usa o que tiver no localStorage
+        membros = JSON.parse(localStorage.getItem('ad_sauipe_membros') || '[]');
+        eventos = JSON.parse(localStorage.getItem('ad_sauipe_eventos') || '[]');
+        setSplashMsg('Usando dados locais (offline)');
+        await new Promise(r => setTimeout(r, 800));
     }
 
-    if (eventos.length === 0 && oldEventos.length > 0) {
-        console.log("Migrando eventos do localStorage para o Supabase...");
-        for(let ev of oldEventos) {
-            // Note: old base64 posters will be saved to DB as is initially
-            await salvarEventoSupabase(ev);
+    // Migração de formato antigo de cargos
+    membros.forEach(m => {
+        if (m.cargos && m.cargos.length > 0 && typeof m.cargos[0] === 'string') {
+            m.cargos = m.cargos.map(s => ({ cargo: s, departamento: '-' }));
         }
-        eventos = await carregarEventos();
-    }
+    });
 
-    document.body.removeChild(splash);
-    
-    // Support DataLists
+    // Atualiza historyStack com dados reais
+    historyStack = [JSON.stringify(membros)];
+    historyIndex = 0;
+
+    // DataList de departamentos
     if (!document.getElementById('lista-departamentos')) {
         const dl = document.createElement('datalist');
         dl.id = 'lista-departamentos';
@@ -1650,12 +1652,8 @@ async function initApp() {
         document.body.appendChild(dl);
     }
 
-    // Render current view
-    if (viewEventos.style.display === 'block') {
-        renderEventos();
-    } else {
-        renderCRM();
-    }
+    document.body.removeChild(splash);
+    renderCRM();
 }
 
 initApp();
