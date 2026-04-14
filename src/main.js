@@ -181,6 +181,11 @@ btnLogin.addEventListener('click', () => {
    if (adminPass.value === 'ADSAUIPE@2026@') {
       isAdminAuthed = true;
       modalLogin.style.display = 'none';
+      
+      // Refresh UI to show admin controls
+      renderCRM();
+      renderEventos();
+
       if(modalLogin.getAttribute('data-target') === 'evento') {
          modalLogin.removeAttribute('data-target');
          abrirModalEvento();
@@ -1566,7 +1571,13 @@ async function initApp() {
     }
 
     document.body.removeChild(splash);
-    renderCRM();
+    
+    // Render current view
+    if (viewEventos.style.display === 'block') {
+        renderEventos();
+    } else {
+        renderCRM();
+    }
 }
 
 initApp();
