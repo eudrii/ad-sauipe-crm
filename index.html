@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AD Sauípe - Membros e CRM</title>
+    <!-- Outfit Font for Modern Vibe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo">
+        <img src="/logo.png" alt="AD Sauipe Logo" class="logo-img" id="main-logo" onerror="this.style.display='none'; document.getElementById('fallback-logo').style.display='flex';">
+        <div class="logo-text" id="fallback-logo" style="display: none; align-items: center; gap: 5px;">
+           <i class="ri-fire-fill fire-icon"></i>
+           <div><span class="logo-ad">AD</span><span class="logo-sauipe">SAUIPE</span></div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <button id="btn-nav-form" class="nav-btn active">Cadastrar</button>
+        <button id="btn-nav-eventos" class="nav-btn">Eventos</button>
+        <button id="btn-nav-crm" class="nav-btn">Acesso Admin</button>
+      </div>
+    </nav>
+
+    <main class="container">
+      <!-- FORM VIEW -->
+      <section id="view-form" class="view active">
+        <div class="header-text">
+          <h1>Identificação de <span class="highlight">Membro</span></h1>
+          <p>Preencha os dados abaixo para gerar sua carteirinha de membro.</p>
+        </div>
+
+        <form id="member-form" class="glass-panel">
+          <div class="form-grid">
+            
+            <!-- Dados Eclesiásticos -->
+            <div class="form-section">
+              <h3><i class="ri-church-line"></i> Dados da Igreja</h3>
+              <!-- Nome -->
+              <div class="input-group">
+                <label for="nome">Nome Completo <span class="req">*</span></label>
+                <input type="text" id="nome" required placeholder="DIGITE SEU NOME COMPLETO" class="uppercase-field">
+              </div>
+
+              <!-- Congregação -->
+              <div class="input-group">
+                <label for="congregacao">Congregação <span class="req">*</span></label>
+                <select id="congregacao" required>
+                  <option value="" disabled selected>Onde você congrega?</option>
+                  <option value="Areal">Areal</option>
+                  <option value="Alto da Vitória">Alto da Vitória</option>
+                  <option value="Barro Branco">Barro Branco</option>
+                  <option value="Curralinho">Curralinho</option>
+                  <option value="Diogo">Diogo</option>
+                  <option value="Estiva">Estiva</option>
+                  <option value="Foz do Imbassai">Foz do Imbassai</option>
+                  <option value="Haras">Haras</option>
+                  <option value="Imbassai">Imbassai</option>
+                  <option value="Jardim Imbassai">Jardim Imbassai</option>
+                  <option value="Patioba">Patioba</option>
+                  <option value="Santo Antônio">Santo Antônio</option>
+                  <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                  <option value="Vila Mar">Vila Mar</option>
+                  <option value="Vila Margarida">Vila Margarida</option>
+                  <option value="Castro">Castro</option>
+                  <option value="Sauipe">Sauipe (Sede)</option>
+                </select>
+              </div>
+
+              <!-- Data Aceitou Jesus -->
+              <div class="input-group">
+                 <label>Ano que aceitou a Jesus (e mês, se lembrar)</label>
+                 <div class="input-row" style="gap: 10px;">
+                    <select id="jesus_mes" style="flex: 1;">
+                       <option value="">Mês (Opcional)</option>
+                       <option value="01">JANEIRO</option>
+                       <option value="02">FEVEREIRO</option>
+                       <option value="03">MARÇO</option>
+                       <option value="04">ABRIL</option>
+                       <option value="05">MAIO</option>
+                       <option value="06">JUNHO</option>
+                       <option value="07">JULHO</option>
+                       <option value="08">AGOSTO</option>
+                       <option value="09">SETEMBRO</option>
+                       <option value="10">OUTUBRO</option>
+                       <option value="11">NOVEMBRO</option>
+                       <option value="12">DEZEMBRO</option>
+                    </select>
+                    <input type="number" id="jesus_ano" placeholder="Ex: 2015" min="1930" max="2026" style="flex: 1;">
+                 </div>
+              </div>
+
+              <!-- Cargos na Igreja -->
+              <div class="input-group checkbox-group" style="margin-top: 1.5rem;">
+                <label class="check-label">
+                  <input type="checkbox" id="tem-cargo">
+                  Tenho um cargo/função na igreja
+                </label>
+              </div>
+
+              <div id="cargos-container" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.03); border-radius: 8px;">
+                 <label>Diga Suas Funções <span class="req">*</span></label>
+                 <div id="lista-cargos">
+                    <!-- Dinamicamente preenchido -->
+                 </div>
+                 <button type="button" id="btn-add-cargo" class="btn-sm"><i class="ri-add-line"></i> Adicionar Outro Cargo</button>
+              </div>
+            </div>
+
+            <!-- Filiação -->
+            <div class="form-section">
+              <h3><i class="ri-group-line"></i> Filiação</h3>
+              <div class="input-group">
+                <label for="pai">Nome do Pai</label>
+                <input type="text" id="pai" placeholder="NOME DO PAI (OPCIONAL)" class="uppercase-field">
+              </div>
+              <div class="input-group">
+                <label for="mae">Nome da Mãe</label>
+                <input type="text" id="mae" placeholder="NOME DA MÃE (OPCIONAL)" class="uppercase-field">
+              </div>
+            </div>
+
+            <!-- Dados Pessoais -->
+            <div class="form-section">
+               <h3><i class="ri-profile-line"></i> Pessoais</h3>
+               <div class="input-row">
+                 <div class="input-group">
+                   <label for="nascimento">Aniversário (Nascimento) <span class="req">*</span></label>
+                   <input type="date" id="nascimento" required>
+                 </div>
+                 <div class="input-group">
+                   <label for="nacionalidade">Nacionalidade <span class="req">*</span></label>
+                   <select id="nacionalidade" required>
+                     <option value="Brasil">Brasil</option>
+                     <option value="Estados Unidos">Estados Unidos</option>
+                     <option value="Portugal">Portugal</option>
+                     <option value="Espanha">Espanha</option>
+                     <option value="Angola">Angola</option>
+                     <option value="Moçambique">Moçambique</option>
+                     <option value="Japão">Japão</option>
+                     <option value="Outro">Outro...</option>
+                   </select>
+                   <input type="text" id="nacionalidade_outro" class="uppercase-field" placeholder="Escreva o país..." style="display:none; margin-top: 8px;">
+                 </div>
+               </div>
+
+               <div class="input-row">
+                 <div class="input-group">
+                   <label for="sexo">Sexo <span class="req">*</span></label>
+                   <select id="sexo" required>
+                     <option value="" disabled selected>Selecione...</option>
+                     <option value="Masculino">Masculino</option>
+                     <option value="Feminino">Feminino</option>
+                   </select>
+                 </div>
+                 <div class="input-group">
+                   <label for="estado_civil">Estado Civil <span class="req">*</span></label>
+                   <select id="estado_civil" required>
+                     <option value="" disabled selected>Selecione...</option>
+                     <option value="Solteiro(a)">Solteiro(a)</option>
+                     <option value="Casado(a)">Casado(a)</option>
+                     <option value="Divorciado(a)">Divorciado(a)</option>
+                     <option value="Viúvo(a)">Viúvo(a)</option>
+                   </select>
+                 </div>
+               </div>
+
+               <!-- Shown only if Casado(a) -->
+               <div class="input-group" id="container-casamento" style="display: none; animation: fadeIn 0.3s forwards;">
+                 <label for="casamento">Aniversário de Casamento (Data que Casou)</label>
+                 <input type="date" id="casamento">
+               </div>
+            </div>
+
+            <!-- Documentos (Only for Cargos) -->
+            <div class="form-section" id="container-documentos" style="display: none;">
+               <h3><i class="ri-file-user-line"></i> Documentos (Obrigatório para Obreiros)</h3>
+               <div class="input-row">
+                 <div class="input-group">
+                   <label for="rg">RG <span class="req">*</span></label>
+                   <input type="text" id="rg" placeholder="NUM. RG" maxlength="20" class="uppercase-field">
+                 </div>
+                 <div class="input-group">
+                   <label for="cpf">CPF <span class="req">*</span></label>
+                   <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" class="uppercase-field">
+                 </div>
+               </div>
+            </div>
+            
+            <!-- Contato -->
+            <div class="form-section">
+              <h3><i class="ri-phone-line"></i> Contato Telefônico</h3>
+              <div class="input-row">
+                 <div class="input-group">
+                    <label for="telefone">Celular 1 (WhatsApp) <span class="req">*</span></label>
+                    <input type="tel" id="telefone" placeholder="(00) 00000-0000" required maxlength="15">
+                 </div>
+                 <div class="input-group">
+                    <label for="telefone2">Celular 2 (Opcional)</label>
+                    <input type="tel" id="telefone2" placeholder="(00) 00000-0000" maxlength="15">
+                 </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary glow-eff" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem;">
+               Enviar Meus Dados <i class="ri-check-double-line"></i>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- SUCCESS VIEW -->
+      <section id="view-success" class="view" style="display: none; text-align: center;">
+         <div class="glass-panel" style="padding: 4rem 2rem;">
+            <i class="ri-checkbox-circle-fill" style="color: #22c55e; font-size: 5rem; margin-bottom: 1rem; display: block;"></i>
+            <h1 style="margin-bottom: 1rem;">Cadastro Recebido!</h1>
+            <p style="font-size: 1.2rem; color: var(--text-muted); line-height: 1.6; max-width: 600px; margin: 0 auto;">
+               Muito obrigado. Vamos entregar a sua carteirinha de membro diretamente na sua congregação e iremos avisar quando estiver pronta.<br><br>
+               Ainda não temos um prazo definido pois dependemos de todos os membros preencherem.
+            </p>
+            <button class="btn-secondary" style="margin-top: 2rem;" onclick="location.reload()">Preencher nova ficha</button>
+         </div>
+      </section>
+
+      <!-- EVENTOS VIEW -->
+      <section id="view-eventos" class="view" style="display: none;">
+         <div class="crm-dashboard">
+
+            <div class="header-text" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem;">
+               <div>
+                 <h1>Agenda do <span class="highlight">Campo</span></h1>
+                 <p>Eventos e aniversariantes da AD Sauípe e suas congregações.</p>
+                 <small style="color: var(--text-muted); opacity: 0.8; margin-top: 5px; display: block;">IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS DE SAUÍPE | CNPJ 41.892.153/0001-78</small>
+               </div>
+               <button id="btn-open-add-evento" class="btn-primary" style="padding: 0.8rem 1.5rem; flex-shrink:0;"><i class="ri-calendar-event-line"></i> Adicionar Evento</button>
+            </div>
+
+            <!-- TABS -->
+            <div class="crm-tabs" style="margin-bottom: 1.5rem;">
+               <button class="tab-btn active" id="ev-tab-eventos"><i class="ri-calendar-check-line"></i> Eventos</button>
+               <button class="tab-btn" id="ev-tab-aniversariantes"><i class="ri-cake-2-line"></i> Aniversariantes</button>
+            </div>
+
+            <!-- ===== EVENTOS CONTENT ===== -->
+            <div id="ev-content-eventos">
+
+               <!-- Month Navigation -->
+               <div class="ev-month-nav">
+                  <button id="ev-prev-mes" class="btn-nav-month"><i class="ri-arrow-left-s-line"></i></button>
+                  <div class="ev-month-label" id="ev-mes-label">Carregando...</div>
+                  <button id="ev-next-mes" class="btn-nav-month"><i class="ri-arrow-right-s-line"></i></button>
+               </div>
+
+               <!-- Congregation Filter -->
+               <div style="background: var(--surface-glass); border: 1px solid var(--border-glass); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                  <i class="ri-filter-3-line" style="font-size: 1.2rem; color: var(--primary); flex-shrink:0;"></i>
+                  <select id="filter-eventos-cong" class="filter-select" style="flex: 1;">
+                     <option value="Todos">Todas as Congregações</option>
+                     <option value="Areal">Areal</option>
+                     <option value="Alto da Vitória">Alto da Vitória</option>
+                     <option value="Barro Branco">Barro Branco</option>
+                     <option value="Curralinho">Curralinho</option>
+                     <option value="Diogo">Diogo</option>
+                     <option value="Estiva">Estiva</option>
+                     <option value="Foz do Imbassai">Foz do Imbassai</option>
+                     <option value="Haras">Haras</option>
+                     <option value="Imbassai">Imbassai</option>
+                     <option value="Jardim Imbassai">Jardim Imbassai</option>
+                     <option value="Patioba">Patioba</option>
+                     <option value="Santo Antônio">Santo Antônio</option>
+                     <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                     <option value="Vila Mar">Vila Mar</option>
+                     <option value="Vila Margarida">Vila Margarida</option>
+                     <option value="Castro">Castro</option>
+                     <option value="Sauipe">Sauipe (Sede)</option>
+                  </select>
+               </div>
+
+               <!-- Events Cards Grid -->
+               <div id="eventos-grid" class="events-grid">
+                  <!-- JS Rendered -->
+               </div>
+
+            </div>
+
+            <!-- ===== ANIVERSARIANTES CONTENT ===== -->
+            <div id="ev-content-aniversariantes" style="display: none;">
+
+               <!-- Filters -->
+               <div style="background: var(--surface-glass); border: 1px solid var(--border-glass); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                  <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px;">
+                     <i class="ri-calendar-todo-line" style="font-size:1.2rem; color:var(--primary); flex-shrink:0;"></i>
+                     <select id="aniv-mes-sel" class="filter-select" style="flex:1;">
+                        <option value="0">Janeiro</option>
+                        <option value="1">Fevereiro</option>
+                        <option value="2">Março</option>
+                        <option value="3">Abril</option>
+                        <option value="4">Maio</option>
+                        <option value="5">Junho</option>
+                        <option value="6">Julho</option>
+                        <option value="7">Agosto</option>
+                        <option value="8">Setembro</option>
+                        <option value="9">Outubro</option>
+                        <option value="10">Novembro</option>
+                        <option value="11">Dezembro</option>
+                     </select>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; flex:2; min-width:200px;">
+                     <i class="ri-filter-3-line" style="font-size:1.2rem; color:var(--primary); flex-shrink:0;"></i>
+                     <select id="aniv-cong-sel" class="filter-select" style="flex:1;">
+                        <option value="Todos">Todas as Congregações</option>
+                        <option value="Areal">Areal</option>
+                        <option value="Alto da Vitória">Alto da Vitória</option>
+                        <option value="Barro Branco">Barro Branco</option>
+                        <option value="Curralinho">Curralinho</option>
+                        <option value="Diogo">Diogo</option>
+                        <option value="Estiva">Estiva</option>
+                        <option value="Foz do Imbassai">Foz do Imbassai</option>
+                        <option value="Haras">Haras</option>
+                        <option value="Imbassai">Imbassai</option>
+                        <option value="Jardim Imbassai">Jardim Imbassai</option>
+                        <option value="Patioba">Patioba</option>
+                        <option value="Santo Antônio">Santo Antônio</option>
+                        <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                        <option value="Vila Mar">Vila Mar</option>
+                        <option value="Vila Margarida">Vila Margarida</option>
+                        <option value="Castro">Castro</option>
+                        <option value="Sauipe">Sauipe (Sede)</option>
+                     </select>
+                  </div>
+               </div>
+
+               <!-- Birthday Grid -->
+               <div id="aniversariantes-grid" class="aniv-grid">
+                  <!-- JS Rendered -->
+               </div>
+
+            </div>
+
+         </div>
+      </section>
+
+      <!-- CRM VIEW -->
+      <section id="view-crm" class="view">
+        <div class="crm-dashboard">
+          
+          <div class="crm-tabs">
+            <button class="tab-btn active" data-tab="todos"><i class="ri-team-line"></i> Todos os Membros</button>
+            <button class="tab-btn" data-tab="aniversariantes"><i class="ri-cake-2-line"></i> Aniversariantes do Mês</button>
+          </div>
+
+          <div class="crm-controls" style="margin-top: 1rem;">
+            <div class="search-box">
+              <i class="ri-search-line"></i>
+              <input type="text" id="search-membro" placeholder="Pesquisar por nome..." class="search-input">
+            </div>
+            <select id="filter-congregacao" class="filter-select">
+              <option value="Todos">Todas as Congregações</option>
+              <option value="Areal">Areal</option>
+              <option value="Alto da Vitória">Alto da Vitória</option>
+              <option value="Barro Branco">Barro Branco</option>
+              <option value="Curralinho">Curralinho</option>
+              <option value="Diogo">Diogo</option>
+              <option value="Estiva">Estiva</option>
+              <option value="Foz do Imbassai">Foz do Imbassai</option>
+              <option value="Haras">Haras</option>
+              <option value="Imbassai">Imbassai</option>
+              <option value="Jardim Imbassai">Jardim Imbassai</option>
+              <option value="Patioba">Patioba</option>
+              <option value="Santo Antônio">Santo Antônio</option>
+              <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+              <option value="Vila Mar">Vila Mar</option>
+              <option value="Vila Margarida">Vila Margarida</option>
+              <option value="Castro">Castro</option>
+              <option value="Sauipe">Sauipe (Sede)</option>
+            </select>
+          </div>
+
+          <div class="table-container glass-panel" style="max-height: 70vh; overflow-y: auto;">
+            <table id="membros-table">
+              <thead>
+                <tr>
+                   <th>Nome</th>
+                   <th>Congregação</th>
+                   <th>Cargo(s)</th>
+                   <th>Telefone</th>
+                   <th style="min-width: 150px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="membros-tbody">
+                 <!-- Tabela renderizada via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- EDIT MEMBER MODAL -->
+    <div id="modal-editar" class="modal">
+      <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto; padding-left: 2rem; padding-right: 2rem;">
+        <button class="close-btn" id="close-editar"><i class="ri-close-line"></i></button>
+        <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;"><i class="ri-edit-box-line" style="color: var(--primary)"></i> Visão Geral / Edição</h2>
+        <form id="edit-form-membro">
+           <input type="hidden" id="edit-id">
+           
+           <div class="input-row" style="margin-bottom: 1rem;">
+             <div class="input-group" style="flex: 2;">
+               <label>Nome Completo</label>
+               <input type="text" id="edit-nome" class="uppercase-field" required>
+             </div>
+             <div class="input-group" style="flex: 1;">
+               <label>Congregação</label>
+               <select id="edit-congregacao" required>
+                  <option value="Areal">Areal</option>
+                  <option value="Alto da Vitória">Alto da Vitória</option>
+                  <option value="Barro Branco">Barro Branco</option>
+                  <option value="Curralinho">Curralinho</option>
+                  <option value="Diogo">Diogo</option>
+                  <option value="Estiva">Estiva</option>
+                  <option value="Foz do Imbassai">Foz do Imbassai</option>
+                  <option value="Haras">Haras</option>
+                  <option value="Imbassai">Imbassai</option>
+                  <option value="Jardim Imbassai">Jardim Imbassai</option>
+                  <option value="Patioba">Patioba</option>
+                  <option value="Santo Antônio">Santo Antônio</option>
+                  <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                  <option value="Vila Mar">Vila Mar</option>
+                  <option value="Vila Margarida">Vila Margarida</option>
+                  <option value="Castro">Castro</option>
+                  <option value="Sauipe">Sauipe (Sede)</option>
+               </select>
+             </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                 <label>Telefone 1</label>
+                 <input type="tel" id="edit-telefone" required>
+              </div>
+              <div class="input-group">
+                 <label>Telefone 2</label>
+                 <input type="tel" id="edit-telefone2">
+              </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                 <label>Estado Civil</label>
+                 <select id="edit-estado-civil" required>
+                     <option value="Solteiro(a)">Solteiro(a)</option>
+                     <option value="Casado(a)">Casado(a)</option>
+                     <option value="Divorciado(a)">Divorciado(a)</option>
+                     <option value="Viúvo(a)">Viúvo(a)</option>
+                 </select>
+              </div>
+              <div class="input-group">
+                 <label>Mês/Ano Conversão</label>
+                 <input type="text" id="edit-data-jesus" class="uppercase-field">
+              </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                 <label>Pai</label>
+                 <input type="text" id="edit-pai" class="uppercase-field">
+              </div>
+              <div class="input-group">
+                 <label>Mãe</label>
+                 <input type="text" id="edit-mae" class="uppercase-field">
+              </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group" style="flex: 1;">
+                 <label>Nascimento</label>
+                 <input type="date" id="edit-nascimento" required>
+              </div>
+              <div class="input-group" style="flex: 1;">
+                 <label>Sexo</label>
+                 <select id="edit-sexo" required>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                 </select>
+              </div>
+              <div class="input-group" style="flex: 1;">
+                 <label>Nacionalidade</label>
+                 <input type="text" id="edit-nacionalidade" class="uppercase-field" required>
+              </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group" style="flex: 1;">
+                 <label>Aniv. Casamento</label>
+                 <input type="date" id="edit-casamento">
+              </div>
+           </div>
+
+           <div class="form-section" style="margin-bottom: 1rem; padding: 1rem; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-glass);">
+               <h4 style="margin-bottom:0.5rem; color: var(--text-main); font-size: 0.95rem;">Cargos / Funções na Igreja</h4>
+               <div id="edit-lista-cargos"></div>
+               <button type="button" class="btn-secondary btn-sm" id="btn-edit-add-cargo" style="margin-top:0.5rem;"><i class="ri-add-line"></i> Adicionar Cargo</button>
+           </div>
+
+           <!-- Documentos -->
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                 <label>RG</label>
+                 <input type="text" id="edit-rg" class="uppercase-field">
+              </div>
+              <div class="input-group">
+                 <label>CPF</label>
+                 <input type="text" id="edit-cpf" class="uppercase-field">
+              </div>
+           </div>
+
+           <!-- ECA Compliance Box (Admin Only) -->
+           <div id="box-eca" style="border: 2px dashed var(--border-glass); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: rgba(0,0,0,0.02); transition: all 0.3s ease;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                 <h4 id="eca-header-text" style="color: var(--text-muted); margin: 0;"><i class="ri-shield-check-line"></i> Anexar Antecedente Criminal - Auditoria ECA</h4>
+                 <a id="eca-link-btn" href="#" target="_blank" style="display:none; text-decoration:none; font-size:0.85rem; padding: 4px 10px; border-radius:15px; background:var(--primary); color:white;"><i class="ri-external-link-line"></i> Ver PDF</a>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;" id="eca-departamento-alvo">Obrigatório para voluntários que trabalham com crianças e adolescentes.</p>
+              
+              <div class="input-row">
+                 <div class="input-group" style="flex: 1.5;">
+                    <label>Link na Nuvem/Drive do Documento</label>
+                    <input type="text" id="eca-link" placeholder="http://...">
+                 </div>
+                 <div class="input-group" style="flex: 1;">
+                    <label>Data de Emissão</label>
+                    <input type="date" id="eca-emissao">
+                 </div>
+                 <div class="input-group" style="flex: 1;">
+                    <label>Validade (Semestral)</label>
+                    <input type="date" id="eca-validade" readonly style="background: rgba(0,0,0,0.05); color: var(--text-muted); cursor: not-allowed; border-style: dashed;">
+                 </div>
+              </div>
+           </div>
+
+           <div style="margin-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+             <i class="ri-save-3-line"></i> Todas as alterações são salvas automaticamente.
+           </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADD / EDIT EVENT MODAL -->
+    <div id="modal-evento" class="modal">
+      <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; padding-left: 2rem; padding-right: 2rem;">
+        <button class="close-btn" id="close-evento"><i class="ri-close-line"></i></button>
+        <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px;">
+          <i class="ri-calendar-event-line" style="color: var(--primary)"></i>
+          <span id="ev-modal-title">Adicionar Novo Evento</span>
+        </h2>
+        <form id="form-evento">
+           <input type="hidden" id="ev-id">
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+             <div class="input-group" style="flex: 2;">
+               <label>Nome do Evento <span class="req">*</span></label>
+               <input type="text" id="ev-nome" class="uppercase-field" placeholder="Ex: CONGRESSO UJAADES" required>
+             </div>
+             <div class="input-group" style="flex: 1;">
+               <label>Localização Específica</label>
+               <input type="text" id="ev-local" class="uppercase-field" placeholder="Ex: TEMPLO SEDE">
+             </div>
+           </div>
+
+           <div class="input-row" style="margin-bottom: 1rem;">
+             <div class="input-group" style="flex: 1;">
+               <label id="ev-autor-label">Adicionado por (Seu Nome) <span class="req">*</span></label>
+               <input type="text" id="ev-autor" class="uppercase-field" required>
+             </div>
+             <div class="input-group" style="flex: 1;">
+               <label>Alcance do Evento <span class="req">*</span></label>
+               <select id="ev-alcance" required>
+                  <option value="Todo o Campo">Todo o Campo (Geral)</option>
+                  <option value="Congregação">Uma Congregação Específica</option>
+               </select>
+             </div>
+             <!-- Shown when Congregação -->
+             <div class="input-group" style="flex: 1; display: none;" id="ev-cong-container">
+               <label>Congregação <span class="req">*</span></label>
+               <select id="ev-cong">
+                  <option value="" disabled selected>Selecione...</option>
+                  <option value="Areal">Areal</option>
+                  <option value="Alto da Vitória">Alto da Vitória</option>
+                  <option value="Barro Branco">Barro Branco</option>
+                  <option value="Curralinho">Curralinho</option>
+                  <option value="Diogo">Diogo</option>
+                  <option value="Estiva">Estiva</option>
+                  <option value="Foz do Imbassai">Foz do Imbassai</option>
+                  <option value="Haras">Haras</option>
+                  <option value="Imbassai">Imbassai</option>
+                  <option value="Jardim Imbassai">Jardim Imbassai</option>
+                  <option value="Patioba">Patioba</option>
+                  <option value="Santo Antônio">Santo Antônio</option>
+                  <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                  <option value="Vila Mar">Vila Mar</option>
+                  <option value="Vila Margarida">Vila Margarida</option>
+                  <option value="Castro">Castro</option>
+                  <option value="Sauipe">Sauipe</option>
+               </select>
+             </div>
+             <!-- Shown when Todo o Campo: where it takes place -->
+             <div class="input-group" style="flex: 1;" id="ev-sede-container">
+               <label>Acontece em qual Congregação?</label>
+               <select id="ev-sede">
+                  <option value="">Não especificada</option>
+                  <option value="Areal">Areal</option>
+                  <option value="Alto da Vitória">Alto da Vitória</option>
+                  <option value="Barro Branco">Barro Branco</option>
+                  <option value="Curralinho">Curralinho</option>
+                  <option value="Diogo">Diogo</option>
+                  <option value="Estiva">Estiva</option>
+                  <option value="Foz do Imbassai">Foz do Imbassai</option>
+                  <option value="Haras">Haras</option>
+                  <option value="Imbassai">Imbassai</option>
+                  <option value="Jardim Imbassai">Jardim Imbassai</option>
+                  <option value="Patioba">Patioba</option>
+                  <option value="Santo Antônio">Santo Antônio</option>
+                  <option value="Sitio Santo Antônio">Sitio Santo Antônio</option>
+                  <option value="Vila Mar">Vila Mar</option>
+                  <option value="Vila Margarida">Vila Margarida</option>
+                  <option value="Castro">Castro</option>
+                  <option value="Sauipe">Sauipe (Sede)</option>
+               </select>
+             </div>
+           </div>
+
+           <!-- DATAS E REPETIÇÃO -->
+           <div class="form-section" style="margin-bottom: 1rem; padding: 1rem; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-glass);">
+              <h4 style="margin-bottom:0.5rem; color: var(--text-main); font-size: 0.95rem;">Datas e Horários</h4>
+              
+              <div class="input-group" style="margin-bottom: 1rem;">
+                 <label>Formato do Evento <span class="req">*</span></label>
+                 <select id="ev-tipo-data" required>
+                    <option value="pontual">Evento Único (1 dia)</option>
+                    <option value="multiplos">Múltiplos Dias (Congresso, etc)</option>
+                    <option value="repetitivo">Repetitivo (Mensal etc)</option>
+                 </select>
+              </div>
+
+              <!-- Pontual -->
+              <div id="ev-container-pontual" class="input-row">
+                 <div class="input-group">
+                   <label>Data <span class="req">*</span></label>
+                   <input type="date" id="ev-data-pontual">
+                 </div>
+                 <div class="input-group">
+                   <label>Horário</label>
+                   <input type="time" id="ev-hora-pontual">
+                 </div>
+              </div>
+
+              <!-- Múltiplos -->
+              <div id="ev-container-multiplos" class="input-row" style="display: none;">
+                 <div class="input-group" style="flex: 2;">
+                   <label>Datas Selecionadas (Adicione abaixo)</label>
+                   <div id="ev-lista-dias" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:5px;"></div>
+                   <div style="display:flex; gap:10px;">
+                      <input type="date" id="ev-add-dia" style="flex:1;">
+                      <button type="button" class="btn-secondary btn-sm" id="btn-ev-add-dia">Adicionar Dia</button>
+                   </div>
+                 </div>
+                 <div class="input-group" style="flex: 1;">
+                   <label>Horário Padrão</label>
+                   <input type="time" id="ev-hora-multiplos">
+                 </div>
+              </div>
+
+              <!-- Repetitivo -->
+              <div id="ev-container-repetitivo" class="input-row" style="display: none;">
+                 <div class="input-group" style="flex: 1.5;">
+                   <label>Regra de Repetição (Ex: Mensal na 1ª Seg)</label>
+                   <select id="ev-regra-repeticao">
+                      <option value="1_seg">Toda 1ª Segunda-feira de cada Mês</option>
+                      <option value="1_ter">Toda 1ª Terça-feira de cada Mês</option>
+                      <option value="1_sab">Todo 1º Sábado de cada Mês</option>
+                      <option value="1_dom">Todo 1º Domingo de cada Mês</option>
+                   </select>
+                 </div>
+                 <div class="input-group" style="flex: 1;">
+                   <label>Horário</label>
+                   <input type="time" id="ev-hora-repeticao">
+                 </div>
+                 <div class="input-group" style="flex: 1;">
+                   <label>Repetir até o dia <span class="req">*</span></label>
+                   <input type="date" id="ev-data-fim-repeticao">
+                 </div>
+              </div>
+           </div>
+
+           <!-- CARTAZ -->
+           <div class="form-section" style="margin-bottom: 1rem; padding: 1rem; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-glass);">
+              <h4 style="margin-bottom:0.5rem; color: var(--text-main); font-size: 0.95rem;">Cartaz (Imagem)</h4>
+              <div class="input-row">
+                 <div class="input-group" style="flex: 2;">
+                   <label>Fazer Upload do Cartaz</label>
+                   <input type="file" id="ev-file" accept="image/*" style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size:0.9rem;">
+                   <small style="color:var(--text-muted); display:block; margin-top:5px;">A imagem será reduzida automaticamente para economizar espaço.</small>
+                 </div>
+                 <div class="input-group" style="flex: 1; align-items:center;">
+                   <!-- Hidden canvas for resizing -->
+                   <canvas id="ev-canvas" style="display:none;"></canvas>
+                   <img id="ev-preview" src="" style="display:none; max-height:80px; border-radius:8px; border:1px solid #ccc; max-width:100%; object-fit:cover;">
+                 </div>
+              </div>
+           </div>
+
+           <!-- RESPONSÁVEIS -->
+           <div class="form-section" style="margin-bottom: 1rem; padding: 1rem; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-glass);">
+               <h4 style="margin-bottom:0.5rem; color: var(--text-main); font-size: 0.95rem;">Responsáveis / Contatos</h4>
+               <div id="ev-lista-resp"></div>
+               <button type="button" class="btn-secondary btn-sm" id="btn-ev-add-resp" style="margin-top:0.5rem;"><i class="ri-add-line"></i> Adicionar Responsável</button>
+           </div>
+
+           <!-- HISTÓRICO (somente visível para admins, preenchido via JS) -->
+           <div id="ev-historico-box" style="display:none; margin-bottom: 1rem; padding: 1rem; background: var(--surface-glass); border-radius: 8px; border: 1px solid var(--border-glass);">
+               <h4 style="margin-bottom:0.8rem; color: var(--text-muted); font-size: 0.9rem; display:flex; align-items:center; gap:6px;">
+                  <i class="ri-history-line" style="color:var(--primary);"></i> Histórico de Alterações
+               </h4>
+               <div id="ev-historico-lista" style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem;"></div>
+           </div>
+
+           <div class="form-actions" style="margin-top: 2rem;">
+              <button type="button" class="btn-secondary" id="btn-ev-cancel">Cancelar</button>
+              <button type="submit" class="btn-primary" style="flex: 1; display:flex; justify-content:center;">
+                 <span id="ev-submit-label">Salvar Evento</span> <i class="ri-save-line" style="margin-left:5px;"></i>
+              </button>
+           </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="modal-login" class="modal">
+      <div class="modal-content" style="max-width: 400px; text-align: center;">
+        <h2 style="margin-bottom: 1rem;">Acesso Restrito</h2>
+        <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">Insira a senha de administrador para acessar o CRM.</p>
+        <input type="password" id="admin-pass" placeholder="Senha" style="width: 100%; margin-bottom: 1rem; text-align: center; font-size: 1.2rem;">
+        <button id="btn-login" class="btn-primary" style="width: 100%; justify-content: center;">Acessar</button>
+      </div>
+    </div>
+
+    <!-- CARTEIRINHA MODAL -->
+    <div id="modal-carteirinha" class="modal">
+      <div class="modal-content">
+        <button class="close-btn" id="close-carteirinha"><i class="ri-close-line"></i></button>
+        <div class="modal-actions">
+          <button id="btn-print" class="btn-secondary"><i class="ri-printer-line"></i> Imprimir Cartão</button>
+        </div>
+        
+        <div class="carteirinha-wrapper" id="carteirinha-print">
+           <div class="carteirinha-face cart-front">
+              <div class="cart-bg-curve"></div>
+              <div class="cart-header">
+                 <div class="logo-mini">
+                    <img src="/logo.png" alt="Logo" style="width: 30px; height: 30px; object-fit: contain; margin-bottom: 2px;">
+                 </div>
+                 <h2>Cartão de Membro</h2>
+              </div>
+              
+              <div class="cart-body">
+                 <div class="c-field f-full"><span class="c-lbl">Nome:</span> <div class="c-val" id="c-nome">NOME AQUI</div></div>
+                 <div class="c-field f-full"><span class="c-lbl">Função:</span> <div class="c-val" id="c-funcao">FUNÇÃO AQUI</div></div>
+                 <div class="c-row">
+                    <div class="c-field"><span class="c-lbl">Congregação:</span> <div class="c-val" id="c-congregacao">SEDE</div></div>
+                 </div>
+              </div>
+              <div class="cart-footer">
+                <p>IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS DE SAUÍPE</p>
+                <p>CNPJ 41.892.153/0001-78 - Contato: (71) 99999-9999</p>
+              </div>
+           </div>
+
+           <div class="carteirinha-face cart-back">
+              <div class="cart-bg-curve curve-top"></div>
+              <h2 class="r-title">Minha Igreja</h2>
+              
+              <div class="cart-body cb-back">
+                 <div class="c-field f-full"><span class="c-lbl">Pai:</span> <div class="c-val" id="c-pai">Pai</div></div>
+                 <div class="c-field f-full"><span class="c-lbl">Mãe:</span> <div class="c-val" id="c-mae">Mãe</div></div>
+                 <div class="c-row">
+                   <div class="c-field w-small"><span class="c-lbl">Sexo:</span> <div class="c-val" id="c-sexo">M</div></div>
+                   <div class="c-field"><span class="c-lbl">Estado Civil:</span> <div class="c-val" id="c-estadocivil">Solteiro</div></div>
+                 </div>
+                 <div class="c-row">
+                   <div class="c-field"><span class="c-lbl">Nacionalidade:</span> <div class="c-val" id="c-nacionalidade">Brasileira</div></div>
+                 </div>
+                 <div class="c-row">
+                   <div class="c-field"><span class="c-lbl">RG:</span> <div class="c-val" id="c-rg">RG</div></div>
+                   <div class="c-field"><span class="c-lbl">CPF:</span> <div class="c-val" id="c-cpf">CPF</div></div>
+                 </div>
+              </div>
+
+              <div class="cart-signature">
+                <div class="sign-line"></div>
+                <p>Pr. Presidente</p>
+              </div>
+           </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer style="margin-top: auto; padding: 2rem; text-align: center; border-top: 1px solid var(--border-glass); background: var(--surface-glass); backdrop-filter: blur(10px);">
+       <p style="font-weight: 700; color: var(--text-main); margin-bottom: 5px;">IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS DE SAUÍPE</p>
+       <p style="font-size: 0.85rem; color: var(--text-muted);">CNPJ 41.892.153/0001-78</p>
+    </footer>
+
+    <!-- MAIN MODULE -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
