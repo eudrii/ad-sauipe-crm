@@ -10,6 +10,12 @@ const CONGREGRACOES = [
   "Santo Antônio", "Sitio Santo Antônio", "Vila Mar", "Vila Margarida", "Castro", "Sauipe (Sede)", "Todo o Campo"
 ];
 
+const DEPARTAMENTOS = [
+  "JOVENS", "ADOLESCENTES", "CRIANÇAS", "INFANTIL", "SENHORAS", "VARÕES", 
+  "MISSÕES", "LOUVOR / MÚSICA", "SECRETARIA", "TESOURARIA", "PATRIMÔNIO", 
+  "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
+];
+
 let historyStack = [localStorage.getItem('ad_sauipe_membros') || '[]'];
 let historyIndex = 0;
 let membros = JSON.parse(historyStack[0]);
@@ -268,7 +274,7 @@ function adicionarCampoCargo() {
         <input type="text" class="cargo-f uppercase-field" placeholder="CARGO (Ex: Líder)" style="margin-bottom:0;">
      </div>
      <div class="input-group" style="flex: 1;">
-        <input type="text" class="cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;">
+        <input type="text" class="cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;" list="lista-departamentos">
      </div>
      <div class="input-group" style="flex: 1;">
         <select class="cargo-c" style="margin-bottom:0;">
@@ -716,7 +722,7 @@ function adicionarCampoCargoEdit(cargoVal = '', deptoVal = '', congVal = '') {
         <input type="text" class="edit-cargo-f uppercase-field" placeholder="CARGO" style="margin-bottom:0;" value="${cargoVal}">
      </div>
      <div class="input-group" style="flex: 1;">
-        <input type="text" class="edit-cargo-d uppercase-field" placeholder="DEPT" style="margin-bottom:0;" value="${deptoVal}">
+        <input type="text" class="edit-cargo-d uppercase-field" placeholder="DEPT" style="margin-bottom:0;" value="${deptoVal}" list="lista-departamentos">
      </div>
      <div class="input-group" style="flex: 1;">
         <select class="edit-cargo-c" style="margin-bottom:0; padding: 0.6rem;">
@@ -1572,6 +1578,14 @@ async function initApp() {
 
     document.body.removeChild(splash);
     
+    // Support DataLists
+    if (!document.getElementById('lista-departamentos')) {
+        const dl = document.createElement('datalist');
+        dl.id = 'lista-departamentos';
+        dl.innerHTML = DEPARTAMENTOS.map(d => `<option value="${d}">`).join('');
+        document.body.appendChild(dl);
+    }
+
     // Render current view
     if (viewEventos.style.display === 'block') {
         renderEventos();
