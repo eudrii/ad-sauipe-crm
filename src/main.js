@@ -406,16 +406,58 @@ memberForm.addEventListener('submit', (e) => {
 });
 
 function renderResumoConfirmacao(m) {
+    function fmtData(s) {
+        if (!s) return '—';
+        const [y, mo, d] = s.split('-');
+        return `${d}/${mo}/${y}`;
+    }
+    function row(label, valor, destaque) {
+        if (!valor) return '';
+        return `<div class="conf-row${destaque ? ' conf-row-destaque' : ''}">
+            <span class="conf-label">${label}</span>
+            <span class="conf-val">${valor}</span>
+        </div>`;
+    }
+    function sec(titulo) {
+        return `<div class="conf-sec-title">${titulo}</div>`;
+    }
+
+    const cargosStr = m.cargos && m.cargos.length > 0
+        ? m.cargos.map(c => {
+            let s = c.cargo || '';
+            if (c.departamento && c.departamento !== '-') s += ` — ${c.departamento}`;
+            if (c.congregacao) s += ` (${c.congregacao})`;
+            return s;
+          }).join('<br>')
+        : 'Membro';
+
     confirmResumo.innerHTML = `
-        <div style="background:var(--input-bg); padding:1.2rem; border-radius:12px; border:1px solid var(--border-glass);">
-            <p><strong>NOME:</strong> ${m.nome}</p>
-            <p><strong>CONGREGAÇÃO:</strong> ${m.congregacao}</p>
-            <p><strong>NASCIMENTO:</strong> ${m.nascimento.split('-').reverse().join('/')}</p>
-            <p><strong>CARGOS:</strong> ${m.cargos.length > 0 ? m.cargos.map(c => `${c.cargo} (${c.congregacao || 'Não inf.'})`).join(', ') : 'Membro'}</p>
-            <p><strong>TELEFONE:</strong> ${m.telefone}</p>
-            <p style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass); color:var(--primary); font-size:0.85rem; font-weight:700;">
-                <i class="ri-error-warning-line"></i> Atenção: Se houver erros, a carteirinha será impressa incorretamente.
-            </p>
+        ${sec('<i class="ri-church-line"></i> Dados da Igreja')}
+        ${row('Nome Completo', `<b>${m.nome}</b>`, true)}
+        ${row('Congregação', m.congregacao)}
+        ${row('Cargo(s) / Função', cargosStr)}
+        ${row('Aceitou Jesus em', m.data_jesus)}
+
+        ${sec('<i class="ri-profile-line"></i> Dados Pessoais')}
+        ${row('Data de Nascimento', `<b>${fmtData(m.nascimento)}</b>`, true)}
+        ${row('Sexo', m.sexo)}
+        ${row('Estado Civil', m.estado_civil)}
+        ${m.casamento ? row('Aniv. Casamento', fmtData(m.casamento)) : ''}
+        ${row('Nacionalidade', m.nacionalidade)}
+        ${row('Nome do Pai', m.pai || '—')}
+        ${row('Nome da Mãe', m.mae || '—')}
+
+        ${(m.rg || m.cpf) ? sec('<i class="ri-file-user-line"></i> Documentos') : ''}
+        ${row('RG', m.rg)}
+        ${row('CPF', m.cpf)}
+
+        ${sec('<i class="ri-phone-line"></i> Contato')}
+        ${row('Celular 1', `<b>${m.telefone}</b>`, true)}
+        ${row('Celular 2', m.telefone2)}
+
+        <div class="conf-aviso">
+            <i class="ri-error-warning-fill"></i>
+            <span>Verifique tudo com atenção! Se algum dado estiver errado, sua carteirinha será impressa incorretamente.</span>
         </div>
     `;
 }
@@ -1253,11 +1295,6 @@ function expandirEventos() {
 
     return timeline;
 }
-
-// --- Eventos view state ---
-let evCurrentMonth = new Date().getMonth();
-let evCurrentYear = new Date().getFullYear();
-const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 function updateEvMonthLabel() {
     const label = document.getElementById('ev-mes-label');
