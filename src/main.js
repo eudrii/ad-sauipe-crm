@@ -16,6 +16,17 @@ const DEPARTAMENTOS = [
   "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
 ];
 
+const DEPARTAMENTOS = [
+  "JOVENS", "ADOLESCENTES", "CRIANÇAS", "INFANTIL", "SENHORAS", "VARÕES", 
+  "MISSÕES", "LOUVOR / MÚSICA", "SECRETARIA", "TESOURARIA", "PATRIMÔNIO", 
+  "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
+];
+
+const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let evCurrentMonth = new Date().getMonth();
+let evCurrentYear = new Date().getFullYear();
+
 let historyStack = [localStorage.getItem('ad_sauipe_membros') || '[]'];
 let historyIndex = 0;
 let membros = JSON.parse(historyStack[0]);
@@ -1205,35 +1216,43 @@ function expandirEventos() {
     limitDate.setFullYear(hoje.getFullYear() + 1); // Expand for 1 year ahead max
 
     eventos.forEach(ev => {
+        if (!ev.regras) return;
         if (ev.regras.tipo === 'pontual') {
-            timeline.push({ ...ev, data_sort: new Date(ev.regras.pontual_data + 'T12:00:00Z'), instance_date: ev.regras.pontual_data });
+            if (ev.regras.pontual_data) {
+                timeline.push({ ...ev, data_sort: new Date(ev.regras.pontual_data + 'T12:00:00Z'), instance_date: ev.regras.pontual_data });
+            }
         } else if (ev.regras.tipo === 'multiplos') {
-            ev.regras.multiplos_dias.forEach(dia => {
-                timeline.push({ ...ev, data_sort: new Date(dia + 'T12:00:00Z'), instance_date: dia });
-            });
+            if (ev.regras.multiplos_dias) {
+                ev.regras.multiplos_dias.forEach(dia => {
+                    timeline.push({ ...ev, data_sort: new Date(dia + 'T12:00:00Z'), instance_date: dia });
+                });
+            }
         } else if (ev.regras.tipo === 'repetitivo') {
-            // Expansion logic for "1st day of month"
-            const [nthStr, dayOfWeekStr] = ev.regras.repete_regra.split('_');
-            const nth = parseInt(nthStr);
-            const dayMap = { 'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sab': 6, 'dom': 0 };
-            const dayOfWeek = dayMap[dayOfWeekStr];
+            if (ev.regras.repete_regra && ev.regras.repete_fim) {
+                const parts = ev.regras.repete_regra.split('_');
+                if (parts.length < 2) return;
+                const nth = parseInt(parts[0]);
+                const dayOfWeekStr = parts[1];
+                const dayMap = { 'seg': 1, 'ter': 2, 'qua': 3, 'qui': 4, 'sex': 5, 'sab': 6, 'dom': 0 };
+                const dayOfWeek = dayMap[dayOfWeekStr];
 
-            const start = new Date(ev.data_criacao);
-            const end = new Date(ev.regras.repete_fim + 'T23:59:59Z');
+                const start = new Date(ev.data_criacao || Date.now());
+                const end = new Date(ev.regras.repete_fim + 'T23:59:59Z');
 
-            let current = new Date(start.getFullYear(), start.getMonth(), 1);
-            while (current <= end && current <= limitDate) {
-                const occurrence = getNthDayOfMonth(current.getFullYear(), current.getMonth(), nth, dayOfWeek);
-                if (occurrence && occurrence >= start && occurrence <= end) {
-                    const occStr = occurrence.toISOString().split('T')[0];
-                    timeline.push({ 
-                        ...ev, 
-                        data_sort: occurrence, 
-                        instance_date: occStr,
-                        is_recurrence: true 
-                    });
+                let current = new Date(start.getFullYear(), start.getMonth(), 1);
+                while (current <= end && current <= limitDate) {
+                    const occurrence = getNthDayOfMonth(current.getFullYear(), current.getMonth(), nth, dayOfWeek);
+                    if (occurrence && occurrence >= start && occurrence <= end) {
+                        const occStr = occurrence.toISOString().split('T')[0];
+                        timeline.push({ 
+                            ...ev, 
+                            data_sort: occurrence, 
+                            instance_date: occStr,
+                            is_recurrence: true 
+                        });
+                    }
+                    current.setMonth(current.getMonth() + 1);
                 }
-                current.setMonth(current.getMonth() + 1);
             }
         }
     });
@@ -1251,156 +1270,17 @@ function updateEvMonthLabel() {
     if (label) label.textContent = `${MESES_NOME[evCurrentMonth]} de ${evCurrentYear}`;
 }
 
-function renderEventos() {
-    updateEvMonthLabel();
-    const filterEv = document.getElementById('filter-eventos-cong').value;
-    const grid = document.getElementById('eventos-grid');
-    grid.innerHTML = '';
-
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    let expanded = expandirEventos();
-
-    // Filter by selected month/year and congregation
-    let evsFiltrados = expanded.filter(ev => {
-        const d = ev.data_sort;
-        if (d.getFullYear() !== evCurrentYear || d.getMonth() !== evCurrentMonth) return false;
-        if (filterEv === 'Todos') return true;
-        // Congregation-specific event
-        if (ev.alcance === 'Congregação' && ev.congregacao === filterEv) return true;
-        // General event that takes place in the selected congregation
-        if (ev.alcance === 'Todo o Campo' && ev.congregacao_sede === filterEv) return true;
-        return false;
     });
-
-    evsFiltrados.sort((a, b) => a.data_sort - b.data_sort);
-
-    if (evsFiltrados.length === 0) {
-        grid.innerHTML = `
+    } catch (err) {
+        console.error("Erro ao renderizar eventos:", err);
+        const grid = document.getElementById('eventos-grid');
+        if (grid) grid.innerHTML = `
             <div style="grid-column:1/-1; text-align:center; padding:4rem 2rem;">
-                <i class="ri-calendar-check-line" style="font-size:3.5rem; color:var(--text-muted); opacity:0.35; display:block; margin-bottom:1rem;"></i>
-                <p style="color:var(--text-muted); font-size:1.05rem;">Nenhum evento para ${MESES_NOME[evCurrentMonth]} de ${evCurrentYear}.</p>
+                <i class="ri-error-warning-line" style="font-size:3.5rem; color:var(--primary); opacity:0.35; display:block; margin-bottom:1rem;"></i>
+                <p style="color:var(--text-muted); font-size:1.05rem;">Houve um erro ao carregar os eventos.</p>
+                <small style="color:var(--primary); cursor:pointer; text-decoration:underline;" onclick="location.reload()">Clique aqui para recarregar</small>
             </div>`;
-        return;
     }
-
-    evsFiltrados.forEach(ev => {
-        const isEnded = ev.data_sort < hoje;
-        const card = document.createElement('div');
-        card.className = `ev-card${isEnded ? ' ev-card-ended' : ''}`;
-
-        const dataFormatada = ev.instance_date.split('-').reverse().join('/');
-        let horaDisp = '';
-        if (ev.regras.tipo === 'pontual') horaDisp = ev.regras.pontual_hora;
-        else if (ev.regras.tipo === 'multiplos') horaDisp = ev.regras.multiplos_hora;
-        else if (ev.regras.tipo === 'repetitivo') horaDisp = ev.regras.repete_hora;
-        const horaStr = horaDisp ? ` às ${horaDisp}` : '';
-
-        // Badge: for general events show congregation where it takes place (if any)
-        const badgeColor = ev.alcance === 'Todo o Campo' ? 'var(--primary)' : 'var(--secondary)';
-        let badgeLabel = ev.alcance === 'Todo o Campo'
-            ? (ev.congregacao_sede ? `Geral · ${ev.congregacao_sede}` : 'Geral')
-            : ev.congregacao;
-
-        let respHtml = '';
-        if (ev.responsaveis && ev.responsaveis.length > 0) {
-            ev.responsaveis.forEach(r => {
-                let num = r.telefone.replace(/\D/g, '');
-                let msg = encodeURIComponent(`Olá ${r.nome}! Gostaria de informações sobre o evento "${ev.nome}".`);
-                respHtml += `
-                    <div class="ev-resp-item">
-                        <div class="ev-resp-info">
-                            <strong>${r.nome}</strong>
-                            <small>${r.funcao}</small>
-                        </div>
-                        <a href="https://wa.me/55${num}?text=${msg}" target="_blank" class="btn-whatsapp" title="WhatsApp">
-                            <i class="ri-whatsapp-line"></i>
-                        </a>
-                    </div>`;
-            });
-        }
-
-        card.innerHTML = `
-            <div class="ev-img-box">
-                ${ev.cartaz
-                    ? `<img src="${ev.cartaz}" alt="${ev.nome}">`
-                    : `<div class="ev-no-poster"><i class="ri-image-line"></i><span>Sem cartaz</span></div>`}
-                ${isEnded ? '<div class="ev-ended-overlay">ENCERRADO</div>' : ''}
-                <div class="ev-badge-local" style="background:${badgeColor};">${badgeLabel}</div>
-            </div>
-            <div class="ev-info">
-                <h3>${ev.nome}</h3>
-                <div class="ev-detail"><i class="ri-calendar-line"></i><span><b>${dataFormatada}</b>${horaStr}</span></div>
-                ${ev.local ? `<div class="ev-detail"><i class="ri-map-pin-line"></i><span>${ev.local}</span></div>` : ''}
-                ${respHtml ? `
-                <div class="ev-resps-container">
-                    <div class="ev-resp-label"><i class="ri-team-line"></i> Responsáveis</div>
-                    <div class="ev-resp-list">${respHtml}</div>
-                </div>` : ''}
-                
-                <div class="ev-card-actions" style="margin-top: 10px; border-top: 1px solid var(--border-glass); padding-top: 10px; justify-content: space-between;">
-                    ${ev.cartaz ? `
-                    <button class="btn-sm btn-download-evt" data-url="${ev.cartaz}" data-name="${ev.nome}" title="Baixar Cartaz" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                        <i class="ri-download-2-line"></i> Download
-                    </button>` : '<span></span>'}
-
-                    ${isAdminAuthed ? `
-                    <div style="display: flex; gap: 8px;">
-                      <button class="btn-sm btn-edit-evt" data-id="${ev.id}" title="Editar" style="color:var(--secondary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                          <i class="ri-edit-line"></i>
-                      </button>
-                      <button class="btn-sm btn-del-evt" data-id="${ev.id}" title="Excluir" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                          <i class="ri-delete-bin-line"></i>
-                      </button>
-                    </div>` : ''}
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-
-    // --- Download Listener ---
-    grid.querySelectorAll('.btn-download-evt').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const url = e.currentTarget.getAttribute('data-url');
-            const name = e.currentTarget.getAttribute('data-name');
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = `cartaz-${name.toLowerCase().replace(/\s+/g, '-')}.webp`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (err) {
-                console.error("Erro ao baixar cartaz:", err);
-                alert("Erro ao baixar a imagem. Clique com o botão direito e selecione 'Guardar imagem como'.");
-            }
-        });
-    });
-
-    grid.querySelectorAll('.btn-edit-evt').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            abrirModalEvento(e.currentTarget.getAttribute('data-id'));
-        });
-    });
-
-    grid.querySelectorAll('.btn-del-evt').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const id = e.currentTarget.getAttribute('data-id');
-            if (confirm('Excluir este evento? Todas as ocorrências serão removidas.')) {
-                eventos = eventos.filter(ev => ev.id !== id);
-                await excluirEventoSupabase(id);
-                renderEventos();
-            }
-        });
-    });
 }
 
 function renderAniversariantes() {
