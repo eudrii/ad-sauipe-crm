@@ -46,10 +46,53 @@ function salvarEventosLocal() {
    localStorage.setItem('ad_sauipe_eventos', JSON.stringify(eventos));
 }
 
+// --- Sanitização de tipos para Supabase ---
+// Postgres rejeita string vazia "" em campos DATE/TIMESTAMPTZ — precisa ser null
+function sanitizarMembro(m) {
+   return {
+      id: m.id,
+      nome: m.nome || null,
+      congregacao: m.congregacao || null,
+      data_jesus: m.data_jesus || null,
+      tem_cargo: !!m.tem_cargo,
+      cargos: m.cargos || [],
+      pai: m.pai || null,
+      mae: m.mae || null,
+      nascimento: m.nascimento || null,       // DATE: nunca enviar ""
+      nacionalidade: m.nacionalidade || null,
+      sexo: m.sexo || null,
+      estado_civil: m.estado_civil || null,
+      casamento: m.casamento || null,          // DATE: nunca enviar ""
+      rg: m.rg || null,
+      cpf: m.cpf || null,
+      telefone: m.telefone || null,
+      telefone2: m.telefone2 || null,
+      eca: m.eca || { entregue: false, link: '', data: '' },
+      data_cadastro: m.data_cadastro || new Date().toISOString(),
+   };
+}
+
+function sanitizarEvento(ev) {
+   return {
+      id: ev.id,
+      nome: ev.nome || null,
+      local: ev.local || null,
+      alcance: ev.alcance || null,
+      congregacao: ev.congregacao || null,
+      congregacao_sede: ev.congregacao_sede || null,
+      regras: ev.regras || {},
+      cartaz: ev.cartaz || null,
+      responsaveis: ev.responsaveis || [],
+      historico: ev.historico || [],
+      data_criacao: ev.data_criacao || new Date().toISOString(),
+   };
+}
+
 // --- Supabase CRUD ---
 async function dbSalvarMembro(m) {
-   const { error } = await supabase.from('membros').upsert(m);
-   if (error) console.error('Erro salvarMembro:', error.message);
+   const payload = sanitizarMembro(m);
+   const { error } = await supabase.from('membros').upsert(payload);
+   if (error) console.error('Erro salvarMembro:', error.message, error.details);
 }
 
 async function dbExcluirMembro(id) {
@@ -58,8 +101,9 @@ async function dbExcluirMembro(id) {
 }
 
 async function dbSalvarEvento(ev) {
-   const { error } = await supabase.from('eventos').upsert(ev);
-   if (error) console.error('Erro salvarEvento:', error.message);
+   const payload = sanitizarEvento(ev);
+   const { error } = await supabase.from('eventos').upsert(payload);
+   if (error) console.error('Erro salvarEvento:', error.message, error.details);
 }
 
 async function dbExcluirEvento(id) {
@@ -709,10 +753,10 @@ function processAutoSave() {
     
     m.pai = document.getElementById('edit-pai').value.toUpperCase();
     m.mae = document.getElementById('edit-mae').value.toUpperCase();
-    m.nascimento = document.getElementById('edit-nascimento').value;
+    m.nascimento = document.getElementById('edit-nascimento').value || null;  // null para Postgres DATE
     m.sexo = document.getElementById('edit-sexo').value;
     m.nacionalidade = document.getElementById('edit-nacionalidade').value.toUpperCase();
-    m.casamento = document.getElementById('edit-casamento').value;
+    m.casamento = document.getElementById('edit-casamento').value || null;    // null para Postgres DATE
     
     let newCargosList = [];
     document.querySelectorAll('.edit-cargo-row').forEach(row => {
