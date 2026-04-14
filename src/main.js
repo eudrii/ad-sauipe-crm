@@ -16,12 +16,6 @@ const DEPARTAMENTOS = [
   "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
 ];
 
-const DEPARTAMENTOS = [
-  "JOVENS", "ADOLESCENTES", "CRIANÇAS", "INFANTIL", "SENHORAS", "VARÕES", 
-  "MISSÕES", "LOUVOR / MÚSICA", "SECRETARIA", "TESOURARIA", "PATRIMÔNIO", 
-  "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
-];
-
 const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 let evCurrentMonth = new Date().getMonth();
@@ -1270,7 +1264,160 @@ function updateEvMonthLabel() {
     if (label) label.textContent = `${MESES_NOME[evCurrentMonth]} de ${evCurrentYear}`;
 }
 
-    });
+function renderEventos() {
+    try {
+        updateEvMonthLabel();
+        const filterEl = document.getElementById('filter-eventos-cong');
+        if (!filterEl) return;
+        const filterEv = filterEl.value;
+        const grid = document.getElementById('eventos-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        let expanded = expandirEventos();
+
+        // Filter by selected month/year and congregation
+        let evsFiltrados = expanded.filter(ev => {
+            const d = ev.data_sort;
+            if (d.getFullYear() !== evCurrentYear || d.getMonth() !== evCurrentMonth) return false;
+            if (filterEv === 'Todos') return true;
+            // Congregation-specific event
+            if (ev.alcance === 'Congregação' && ev.congregacao === filterEv) return true;
+            // General event that takes place in the selected congregation
+            if (ev.alcance === 'Todo o Campo' && ev.congregacao_sede === filterEv) return true;
+            return false;
+        });
+
+        evsFiltrados.sort((a, b) => a.data_sort - b.data_sort);
+
+        if (evsFiltrados.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column:1/-1; text-align:center; padding:4rem 2rem;">
+                    <i class="ri-calendar-check-line" style="font-size:3.5rem; color:var(--text-muted); opacity:0.35; display:block; margin-bottom:1rem;"></i>
+                    <p style="color:var(--text-muted); font-size:1.05rem;">Nenhum evento para ${MESES_NOME[evCurrentMonth]} de ${evCurrentYear}.</p>
+                </div>`;
+            return;
+        }
+
+        evsFiltrados.forEach(ev => {
+            const isEnded = ev.data_sort < hoje;
+            const card = document.createElement('div');
+            card.className = `ev-card${isEnded ? ' ev-card-ended' : ''}`;
+
+            const dataFormatada = ev.instance_date.split('-').reverse().join('/');
+            let horaDisp = '';
+            if (ev.regras.tipo === 'pontual') horaDisp = ev.regras.pontual_hora;
+            else if (ev.regras.tipo === 'multiplos') horaDisp = ev.regras.multiplos_hora;
+            else if (ev.regras.tipo === 'repetitivo') horaDisp = ev.regras.repete_hora;
+            const horaStr = horaDisp ? ` às ${horaDisp}` : '';
+
+            // Badge: for general events show congregation where it takes place (if any)
+            const badgeColor = ev.alcance === 'Todo o Campo' ? 'var(--primary)' : 'var(--secondary)';
+            let badgeLabel = ev.alcance === 'Todo o Campo'
+                ? (ev.congregacao_sede ? `Geral · ${ev.congregacao_sede}` : 'Geral')
+                : ev.congregacao;
+
+            let respHtml = '';
+            if (ev.responsaveis && ev.responsaveis.length > 0) {
+                ev.responsaveis.forEach(r => {
+                    let num = r.telefone.replace(/\D/g, '');
+                    let msg = encodeURIComponent(`Olá ${r.nome}! Gostaria de informações sobre o evento "${ev.nome}".`);
+                    respHtml += `
+                        <div class="ev-resp-item">
+                            <div class="ev-resp-info">
+                                <strong>${r.nome}</strong>
+                                <small>${r.funcao}</small>
+                            </div>
+                            <a href="https://wa.me/55${num}?text=${msg}" target="_blank" class="btn-whatsapp" title="WhatsApp">
+                                <i class="ri-whatsapp-line"></i>
+                            </a>
+                        </div>`;
+                });
+            }
+
+            card.innerHTML = `
+                <div class="ev-img-box">
+                    ${ev.cartaz
+                        ? `<img src="${ev.cartaz}" alt="${ev.nome}">`
+                        : `<div class="ev-no-poster"><i class="ri-image-line"></i><span>Sem cartaz</span></div>`}
+                    ${isEnded ? '<div class="ev-ended-overlay">ENCERRADO</div>' : ''}
+                    <div class="ev-badge-local" style="background:${badgeColor};">${badgeLabel}</div>
+                </div>
+                <div class="ev-info">
+                    <h3>${ev.nome}</h3>
+                    <div class="ev-detail"><i class="ri-calendar-line"></i><span><b>${dataFormatada}</b>${horaStr}</span></div>
+                    ${ev.local ? `<div class="ev-detail"><i class="ri-map-pin-line"></i><span>${ev.local}</span></div>` : ''}
+                    ${respHtml ? `
+                    <div class="ev-resps-container">
+                        <div class="ev-resp-label"><i class="ri-team-line"></i> Responsáveis</div>
+                        <div class="ev-resp-list">${respHtml}</div>
+                    </div>` : ''}
+                    
+                    <div class="ev-card-actions" style="margin-top: 10px; border-top: 1px solid var(--border-glass); padding-top: 10px; justify-content: space-between;">
+                        ${ev.cartaz ? `
+                        <button class="btn-sm btn-download-evt" data-url="${ev.cartaz}" data-name="${ev.nome}" title="Baixar Cartaz" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                            <i class="ri-download-2-line"></i> Download
+                        </button>` : '<span></span>'}
+
+                        ${isAdminAuthed ? `
+                        <div style="display: flex; gap: 8px;">
+                          <button class="btn-sm btn-edit-evt" data-id="${ev.id}" title="Editar" style="color:var(--secondary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                              <i class="ri-edit-line"></i>
+                          </button>
+                          <button class="btn-sm btn-del-evt" data-id="${ev.id}" title="Excluir" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                              <i class="ri-delete-bin-line"></i>
+                          </button>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        // --- Download Listener ---
+        grid.querySelectorAll('.btn-download-evt').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const url = e.currentTarget.getAttribute('data-url');
+                const name = e.currentTarget.getAttribute('data-name');
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = `cartaz-${name.toLowerCase().replace(/\s+/g, '-')}.webp`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(blobUrl);
+                } catch (err) {
+                    console.error("Erro ao baixar cartaz:", err);
+                    alert("Erro ao baixar a imagem. Clique com o botão direito e selecione 'Guardar imagem como'.");
+                }
+            });
+        });
+
+        grid.querySelectorAll('.btn-edit-evt').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                abrirModalEvento(e.currentTarget.getAttribute('data-id'));
+            });
+        });
+
+        grid.querySelectorAll('.btn-del-evt').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = e.currentTarget.getAttribute('data-id');
+                if (confirm('Excluir este evento? Todas as ocorrências serão removidas.')) {
+                    eventos = eventos.filter(ev => ev.id !== id);
+                    await excluirEventoSupabase(id);
+                    renderEventos();
+                }
+            });
+        });
     } catch (err) {
         console.error("Erro ao renderizar eventos:", err);
         const grid = document.getElementById('eventos-grid');
