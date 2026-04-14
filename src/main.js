@@ -1,14 +1,19 @@
 import './style.css';
 
 // --- State & History ---
+// --- Supabase Config ---
+import { supabase } from './lib/supabase.js';
+
+const CONGREGRACOES = [
+  "Areal", "Alto da Vitória", "Barro Branco", "Curralinho", "Diogo", "Estiva", 
+  "Foz do Imbassai", "Haras", "Imbassai", "Jardim Imbassai", "Patioba", 
+  "Santo Antônio", "Sitio Santo Antônio", "Vila Mar", "Vila Margarida", "Castro", "Sauipe (Sede)", "Todo o Campo"
+];
+
 let historyStack = [localStorage.getItem('ad_sauipe_membros') || '[]'];
 let historyIndex = 0;
 let membros = JSON.parse(historyStack[0]);
-
 let eventos = JSON.parse(localStorage.getItem('ad_sauipe_eventos') || '[]');
-function salvarEventos() {
-  localStorage.setItem('ad_sauipe_eventos', JSON.stringify(eventos));
-}
 
 // Utility to find N-th day of week in a month
 function getNthDayOfMonth(year, month, nth, dayOfWeek) {
@@ -24,8 +29,44 @@ function getNthDayOfMonth(year, month, nth, dayOfWeek) {
     return null;
 }
 
-function salvarMembros() {
-  localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
+async function carregarMembros() {
+   const { data, error } = await supabase.from('membros').select('*');
+   if (error) {
+      console.error("Erro ao carregar membros:", error);
+      return [];
+   }
+   return data;
+}
+
+async function carregarEventos() {
+   const { data, error } = await supabase.from('eventos').select('*');
+   if (error) {
+      console.error("Erro ao carregar eventos:", error);
+      return [];
+   }
+   return data;
+}
+
+// Note: Initial state comes from localStorage above, then updated by initApp()
+
+async function salvarMembroSupabase(membro) {
+   const { error } = await supabase.from('membros').upsert(membro);
+   if (error) console.error("Erro ao salvar membro:", error);
+}
+
+async function salvarEventoSupabase(evento) {
+   const { error } = await supabase.from('eventos').upsert(evento);
+   if (error) console.error("Erro ao salvar evento:", error);
+}
+
+async function excluirMembroSupabase(id) {
+   const { error } = await supabase.from('membros').delete().eq('id', id);
+   if (error) console.error("Erro ao excluir membro:", error);
+}
+
+async function excluirEventoSupabase(id) {
+   const { error } = await supabase.from('eventos').delete().eq('id', id);
+   if (error) console.error("Erro ao excluir evento:", error);
 }
 
 function pushHistory() {
@@ -35,7 +76,8 @@ function pushHistory() {
     historyStack.push(stateStr);
     if(historyStack.length > 50) historyStack.shift(); 
     historyIndex = historyStack.length - 1;
-    salvarMembros();
+    // Local cache only for history
+    localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
 }
 
 document.addEventListener('keydown', (e) => {
@@ -44,7 +86,7 @@ document.addEventListener('keydown', (e) => {
         if (historyIndex > 0) {
             historyIndex--;
             membros = JSON.parse(historyStack[historyIndex]);
-            salvarMembros();
+            localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
             renderCRM();
             if(document.getElementById('modal-editar').style.display === 'block') {
                abrirEdicao(document.getElementById('edit-id').value);
@@ -55,7 +97,7 @@ document.addEventListener('keydown', (e) => {
         if (historyIndex < historyStack.length - 1) {
             historyIndex++;
             membros = JSON.parse(historyStack[historyIndex]);
-            salvarMembros();
+            localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
             renderCRM();
             if(document.getElementById('modal-editar').style.display === 'block') {
                abrirEdicao(document.getElementById('edit-id').value);
@@ -217,11 +259,17 @@ function adicionarCampoCargo() {
    div.className = 'input-row cargo-row';
    div.style.marginBottom = '10px';
    div.innerHTML = `
-     <div class="input-group">
+     <div class="input-group" style="flex: 1.2;">
         <input type="text" class="cargo-f uppercase-field" placeholder="CARGO (Ex: Líder)" style="margin-bottom:0;">
      </div>
-     <div class="input-group">
+     <div class="input-group" style="flex: 1;">
         <input type="text" class="cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;">
+     </div>
+     <div class="input-group" style="flex: 1;">
+        <select class="cargo-c" style="margin-bottom:0;">
+           <option value="" disabled selected>Onde exerce?</option>
+           ${CONGREGRACOES.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
      </div>
    `;
    
@@ -277,7 +325,13 @@ applyMask(document.getElementById('edit-telefone2'), phoneMask);
 applyMask(document.getElementById('edit-cpf'), cpfMask);
 
 // --- Form Submission ---
-const memberForm = document.getElementById('member-form');
+// --- Review and Confirmation Flow ---
+const modalConfirmar = document.getElementById('modal-confirmar');
+const confirmResumo = document.getElementById('confirmar-resumo');
+const btnConfirmarCorrigir = document.getElementById('btn-confirmar-corrigir');
+const btnConfirmarEnviar = document.getElementById('btn-confirmar-enviar');
+
+let pendingMembro = null;
 
 memberForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -288,7 +342,12 @@ memberForm.addEventListener('submit', (e) => {
       document.querySelectorAll('.cargo-row').forEach(row => {
          const f = row.querySelector('.cargo-f').value.trim();
          const d = row.querySelector('.cargo-d').value.trim();
-         if (f || d) cargosObj.push({ cargo: f.toUpperCase(), departamento: d.toUpperCase() });
+         const c = row.querySelector('.cargo-c').value;
+         if (f || d || c) cargosObj.push({ 
+             cargo: f.toUpperCase(), 
+             departamento: d.toUpperCase(),
+             congregacao: c
+         });
       });
   }
   
@@ -299,13 +358,13 @@ memberForm.addEventListener('submit', (e) => {
   let jesusA = document.getElementById('jesus_ano').value;
   let jesusStr = jesusA ? (jesusM ? `${jesusM}/${jesusA}` : jesusA) : '';
   
-  const novoMembro = {
+  pendingMembro = {
     id: Date.now().toString(),
     nome: document.getElementById('nome').value.toUpperCase(),
     congregacao: document.getElementById('congregacao').value,
     data_jesus: jesusStr,
     tem_cargo: checkCargo.checked,
-    cargos: cargosObj, // Array of objetos
+    cargos: cargosObj,
     
     pai: document.getElementById('pai').value.toUpperCase(),
     mae: document.getElementById('mae').value.toUpperCase(),
@@ -322,18 +381,51 @@ memberForm.addEventListener('submit', (e) => {
     telefone: document.getElementById('telefone').value,
     telefone2: document.getElementById('telefone2').value,
     
-    eca: { entregue: false, link: '', data: '' }, // starts empty
+    eca: { entregue: false, link: '', data: '' },
     data_cadastro: new Date().toISOString()
   };
 
-  membros.push(novoMembro);
-  pushHistory();
-  
-  memberForm.reset();
-  listaCargos.innerHTML = '';
-  adicionarCampoCargo();
-  
-  switchView('success');
+  renderResumoConfirmacao(pendingMembro);
+  modalConfirmar.style.display = 'block';
+});
+
+function renderResumoConfirmacao(m) {
+    confirmResumo.innerHTML = `
+        <div style="background:var(--input-bg); padding:1.2rem; border-radius:12px; border:1px solid var(--border-glass);">
+            <p><strong>NOME:</strong> ${m.nome}</p>
+            <p><strong>CONGREGAÇÃO:</strong> ${m.congregacao}</p>
+            <p><strong>NASCIMENTO:</strong> ${m.nascimento.split('-').reverse().join('/')}</p>
+            <p><strong>CARGOS:</strong> ${m.cargos.length > 0 ? m.cargos.map(c => `${c.cargo} (${c.congregacao || 'Não inf.'})`).join(', ') : 'Membro'}</p>
+            <p><strong>TELEFONE:</strong> ${m.telefone}</p>
+            <p style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-glass); color:var(--primary); font-size:0.85rem; font-weight:700;">
+                <i class="ri-error-warning-line"></i> Atenção: Se houver erros, a carteirinha será impressa incorretamente.
+            </p>
+        </div>
+    `;
+}
+
+btnConfirmarCorrigir.addEventListener('click', () => {
+    modalConfirmar.style.display = 'none';
+});
+
+btnConfirmarEnviar.addEventListener('click', async () => {
+    if(!pendingMembro) return;
+    
+    btnConfirmarEnviar.disabled = true;
+    btnConfirmarEnviar.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Enviando...';
+    
+    membros.push(pendingMembro);
+    await salvarMembroSupabase(pendingMembro);
+    
+    btnConfirmarEnviar.disabled = false;
+    btnConfirmarEnviar.innerHTML = '<i class="ri-check-double-line"></i> Confirmar e Enviar';
+    
+    modalConfirmar.style.display = 'none';
+    memberForm.reset();
+    listaCargos.innerHTML = '';
+    adicionarCampoCargo();
+    switchView('success');
+    pendingMembro = null;
 });
 
 // --- CRM Dashboard ---
@@ -450,10 +542,11 @@ function renderCRM() {
   // Bind Buttons
   document.querySelectorAll('.btn-carteirinha').forEach(btn => btn.addEventListener('click', (e) => abrirCarteirinha(e.currentTarget.getAttribute('data-id'))));
   document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
       if (confirm('Tem certeza que deseja excluir este membro?')) {
-        membros = membros.filter(m => m.id !== e.currentTarget.getAttribute('data-id'));
-        pushHistory();
+        membros = membros.filter(m => m.id !== id);
+        await excluirMembroSupabase(id);
         renderCRM();
       }
     });
@@ -509,7 +602,7 @@ function abrirEdicao(id) {
     if(cargosObjArray.length === 0) {
         adicionarCampoCargoEdit();
     } else {
-        cargosObjArray.forEach(c => adicionarCampoCargoEdit(c.cargo, c.departamento));
+        cargosObjArray.forEach(c => adicionarCampoCargoEdit(c.cargo, c.departamento, c.congregacao));
     }
     
     const boxEca = document.getElementById('box-eca');
@@ -576,7 +669,8 @@ function processAutoSave() {
     document.querySelectorAll('.edit-cargo-row').forEach(row => {
          const f = row.querySelector('.edit-cargo-f').value.trim();
          const d = row.querySelector('.edit-cargo-d').value.trim();
-         if (f || d) newCargosList.push({ cargo: f.toUpperCase(), departamento: d.toUpperCase() });
+         const c = row.querySelector('.edit-cargo-c').value;
+         if (f || d || c) newCargosList.push({ cargo: f.toUpperCase(), departamento: d.toUpperCase(), congregacao: c });
     });
     m.cargos = newCargosList;
     m.tem_cargo = m.cargos.length > 0;
@@ -606,7 +700,7 @@ document.getElementById('eca-emissao').addEventListener('change', (e) => {
     }
 });
 
-function adicionarCampoCargoEdit(cargoVal = '', deptoVal = '') {
+function adicionarCampoCargoEdit(cargoVal = '', deptoVal = '', congVal = '') {
    const editListaCargos = document.getElementById('edit-lista-cargos');
    const div = document.createElement('div');
    div.className = 'input-row edit-cargo-row';
@@ -614,17 +708,21 @@ function adicionarCampoCargoEdit(cargoVal = '', deptoVal = '') {
    div.style.gap = '8px';
    div.innerHTML = `
      <div class="input-group" style="flex: 1;">
-        <input type="text" class="edit-cargo-f uppercase-field" placeholder="CARGO (Ex: Líder)" style="margin-bottom:0;" value="${cargoVal}">
+        <input type="text" class="edit-cargo-f uppercase-field" placeholder="CARGO" style="margin-bottom:0;" value="${cargoVal}">
      </div>
      <div class="input-group" style="flex: 1;">
-        <input type="text" class="edit-cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;" value="${deptoVal}">
+        <input type="text" class="edit-cargo-d uppercase-field" placeholder="DEPT" style="margin-bottom:0;" value="${deptoVal}">
      </div>
-     <button type="button" class="btn-sm btn-delete-cargo-edit" style="color:var(--primary); background:transparent; border:none; cursor:pointer;" title="Remover Cargo"><i class="ri-delete-bin-line"></i></button>
+     <div class="input-group" style="flex: 1;">
+        <select class="edit-cargo-c" style="margin-bottom:0; padding: 0.6rem;">
+           <option value="">Onde exerce?</option>
+           ${CONGREGRACOES.map(c => `<option value="${c}" ${c === congVal ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+     </div>
+     <button type="button" class="btn-sm btn-delete-cargo-edit" style="color:var(--primary); background:transparent; border:none; cursor:pointer;" title="Remover"><i class="ri-delete-bin-line"></i></button>
    `;
    
-   div.querySelectorAll('input').forEach(inp => {
-       inp.addEventListener('input', uppercaseListener);
-   });
+   div.querySelectorAll('input').forEach(inp => inp.addEventListener('input', uppercaseListener));
    
    div.querySelector('.btn-delete-cargo-edit').addEventListener('click', () => {
        div.remove();
@@ -645,14 +743,17 @@ document.getElementById('btn-edit-add-cargo').addEventListener('click', () => {
 
 // Auto Save triggers
 const editForm = document.getElementById('edit-form-membro');
-editForm.addEventListener('change', () => {
+editForm.addEventListener('change', async () => {
    processAutoSave();
    pushHistory();
-   renderCRM(); // rerender table behind
+   const id = document.getElementById('edit-id').value;
+   const m = membros.find(x => x.id === id);
+   if (m) await salvarMembroSupabase(m);
+   renderCRM(); 
 });
 editForm.addEventListener('keyup', () => {
    processAutoSave();
-   salvarMembros(); // silently saves locally on keystroke without jumping history or resetting table inputs
+   localStorage.setItem('ad_sauipe_membros', JSON.stringify(membros));
 });
 
 
@@ -680,7 +781,7 @@ function abrirCarteirinha(id) {
       if(typeof m.cargos[0] === 'string') {
          func = m.cargos.join(' / '); 
       } else {
-         func = m.cargos.map(c => c.cargo).join(' / ');
+         func = m.cargos.map(c => `${c.cargo}${c.congregacao ? ` (${c.congregacao})` : ''}`).join(' / ');
       }
   }
   document.getElementById('c-funcao').innerText = func;
@@ -978,13 +1079,42 @@ function abrirModalEvento(idEvento = null) {
 }
 
 const formEvento = document.getElementById('form-evento');
-formEvento.addEventListener('submit', (e) => {
+formEvento.addEventListener('submit', async (e) => {
    e.preventDefault();
 
    const evId = document.getElementById('ev-id').value;
    const isEdit = !!evId;
    const autorNome = document.getElementById('ev-autor').value.trim().toUpperCase();
    const agora = new Date().toISOString();
+
+   const submitBtn = e.target.querySelector('button[type="submit"]');
+   submitBtn.disabled = true;
+   submitBtn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Salvando...';
+
+   let finalCartazUrl = cartazBase64;
+
+   // 1. Upload to Storage if it's a new Base64 image
+   if (cartazBase64 && cartazBase64.startsWith('data:image')) {
+       try {
+           const blob = await (await fetch(cartazBase64)).blob();
+           const fileName = `poster-${Date.now()}.webp`;
+           const { data, error } = await supabase.storage
+               .from('posters')
+               .upload(fileName, blob, { contentType: 'image/webp' });
+           
+           if (error) throw error;
+           
+           const { data: { publicUrl } } = supabase.storage
+               .from('posters')
+               .getPublicUrl(fileName);
+           
+           finalCartazUrl = publicUrl;
+       } catch (err) {
+           console.error("Erro no upload do cartaz:", err);
+           alert("Erro ao subir a imagem. O evento será salvo sem cartaz.");
+           finalCartazUrl = '';
+       }
+   }
 
    const regras = {
       tipo: document.getElementById('ev-tipo-data').value,
@@ -1009,12 +1139,13 @@ formEvento.addEventListener('submit', (e) => {
    const congregacaoVal = alcanceVal === 'Congregação' ? (document.getElementById('ev-cong').value || '') : '';
    const congregacaoSedeVal = alcanceVal === 'Todo o Campo' ? (document.getElementById('ev-sede').value || '') : '';
 
+   let evObj = null;
+
    if (isEdit) {
-      // UPDATE existing event
       const idx = eventos.findIndex(ev => ev.id === evId);
       if (idx !== -1) {
          const histEntry = { acao: 'Editado', por: autorNome || 'ADMIN', em: agora };
-         eventos[idx] = {
+         evObj = {
             ...eventos[idx],
             nome: document.getElementById('ev-nome').value.trim().toUpperCase(),
             local: document.getElementById('ev-local').value.trim().toUpperCase(),
@@ -1022,15 +1153,15 @@ formEvento.addEventListener('submit', (e) => {
             congregacao: congregacaoVal,
             congregacao_sede: congregacaoSedeVal,
             regras,
-            cartaz: cartazBase64 || eventos[idx].cartaz,
+            cartaz: finalCartazUrl,
             responsaveis: respList,
             historico: [...(eventos[idx].historico || []), histEntry]
          };
+         eventos[idx] = evObj;
       }
    } else {
-      // CREATE new event
       const histEntry = { acao: 'Criado', por: autorNome || 'ADMIN', em: agora };
-      const novoEv = {
+      evObj = {
          id: Date.now().toString(),
          nome: document.getElementById('ev-nome').value.trim().toUpperCase(),
          local: document.getElementById('ev-local').value.trim().toUpperCase(),
@@ -1038,15 +1169,18 @@ formEvento.addEventListener('submit', (e) => {
          congregacao: congregacaoVal,
          congregacao_sede: congregacaoSedeVal,
          regras,
-         cartaz: cartazBase64,
+         cartaz: finalCartazUrl,
          responsaveis: respList,
          historico: [histEntry],
          data_criacao: agora
       };
-      eventos.push(novoEv);
+      eventos.push(evObj);
    }
 
-   salvarEventos();
+   if (evObj) await salvarEventoSupabase(evObj);
+
+   submitBtn.disabled = false;
+   submitBtn.innerHTML = '<span id="ev-submit-label">Salvar Evento</span> <i class="ri-save-line" style="margin-left:5px;"></i>';
    modalEvento.style.display = 'none';
    renderEventos();
 });
@@ -1193,18 +1327,49 @@ function renderEventos() {
                     <div class="ev-resp-label"><i class="ri-team-line"></i> Responsáveis</div>
                     <div class="ev-resp-list">${respHtml}</div>
                 </div>` : ''}
-                ${isAdminAuthed ? `
-                <div class="ev-card-actions">
-                    <button class="btn-sm btn-edit-evt" data-id="${ev.id}" title="Editar Evento" style="color:var(--secondary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                        <i class="ri-edit-line"></i> Editar
-                    </button>
-                    <button class="btn-sm btn-del-evt" data-id="${ev.id}" title="Excluir Evento" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                        <i class="ri-delete-bin-line"></i> Excluir
-                    </button>
-                </div>` : ''}
+                
+                <div class="ev-card-actions" style="margin-top: 10px; border-top: 1px solid var(--border-glass); padding-top: 10px; justify-content: space-between;">
+                    ${ev.cartaz ? `
+                    <button class="btn-sm btn-download-evt" data-url="${ev.cartaz}" data-name="${ev.nome}" title="Baixar Cartaz" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                        <i class="ri-download-2-line"></i> Download
+                    </button>` : '<span></span>'}
+
+                    ${isAdminAuthed ? `
+                    <div style="display: flex; gap: 8px;">
+                      <button class="btn-sm btn-edit-evt" data-id="${ev.id}" title="Editar" style="color:var(--secondary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                          <i class="ri-edit-line"></i>
+                      </button>
+                      <button class="btn-sm btn-del-evt" data-id="${ev.id}" title="Excluir" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                          <i class="ri-delete-bin-line"></i>
+                      </button>
+                    </div>` : ''}
+                </div>
             </div>
         `;
         grid.appendChild(card);
+    });
+
+    // --- Download Listener ---
+    grid.querySelectorAll('.btn-download-evt').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const url = e.currentTarget.getAttribute('data-url');
+            const name = e.currentTarget.getAttribute('data-name');
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `cartaz-${name.toLowerCase().replace(/\s+/g, '-')}.webp`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                console.error("Erro ao baixar cartaz:", err);
+                alert("Erro ao baixar a imagem. Clique com o botão direito e selecione 'Guardar imagem como'.");
+            }
+        });
     });
 
     grid.querySelectorAll('.btn-edit-evt').forEach(btn => {
@@ -1215,11 +1380,12 @@ function renderEventos() {
     });
 
     grid.querySelectorAll('.btn-del-evt').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
             e.stopPropagation();
+            const id = e.currentTarget.getAttribute('data-id');
             if (confirm('Excluir este evento? Todas as ocorrências serão removidas.')) {
-                eventos = eventos.filter(ev => ev.id !== e.currentTarget.getAttribute('data-id'));
-                salvarEventos();
+                eventos = eventos.filter(ev => ev.id !== id);
+                await excluirEventoSupabase(id);
                 renderEventos();
             }
         });
@@ -1361,10 +1527,46 @@ printStyle.innerHTML = `
 document.head.appendChild(printStyle);
 btnPrint.addEventListener('click', () => window.print());
 
-// Safely Migrate old test data at boot tracking edge cases
-membros.forEach(m => {
-    if (m.cargos && m.cargos.length > 0 && typeof m.cargos[0] === 'string') {
-        m.cargos = m.cargos.map(s => ({ cargo: s, departamento: '-' }));
+// --- Migration & Boot ---
+async function initApp() {
+    const splash = document.createElement('div');
+    splash.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-main); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center;";
+    splash.innerHTML = `
+        <i class="ri-fire-fill fire-icon" style="font-size:4rem; margin-bottom:1rem;"></i>
+        <p style="color:var(--text-main); font-weight:600;">Conectando ao Supabase...</p>
+        <div style="margin-top:20px; width:200px; height:4px; background:rgba(0,0,0,0.1); border-radius:2px; overflow:hidden;">
+            <div style="width:30%; height:100%; background:var(--primary); animation: loadingBar 2s infinite ease-in-out;"></div>
+        </div>
+        <style>@keyframes loadingBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }</style>
+    `;
+    document.body.appendChild(splash);
+
+    membros = await carregarMembros();
+    eventos = await carregarEventos();
+
+    // Migration logic
+    const oldMembros = JSON.parse(localStorage.getItem('ad_sauipe_membros') || '[]');
+    const oldEventos = JSON.parse(localStorage.getItem('ad_sauipe_eventos') || '[]');
+
+    if (membros.length === 0 && oldMembros.length > 0) {
+        console.log("Migrando membros do localStorage para o Supabase...");
+        for(let m of oldMembros) {
+            await salvarMembroSupabase(m);
+        }
+        membros = await carregarMembros();
     }
-});
-salvarMembros();
+
+    if (eventos.length === 0 && oldEventos.length > 0) {
+        console.log("Migrando eventos do localStorage para o Supabase...");
+        for(let ev of oldEventos) {
+            // Note: old base64 posters will be saved to DB as is initially
+            await salvarEventoSupabase(ev);
+        }
+        eventos = await carregarEventos();
+    }
+
+    document.body.removeChild(splash);
+    renderCRM();
+}
+
+initApp();

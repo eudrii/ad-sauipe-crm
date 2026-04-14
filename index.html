@@ -578,10 +578,6 @@
 
            <div class="input-row" style="margin-bottom: 1rem;">
              <div class="input-group" style="flex: 1;">
-               <label id="ev-autor-label">Adicionado por (Seu Nome) <span class="req">*</span></label>
-               <input type="text" id="ev-autor" class="uppercase-field" required>
-             </div>
-             <div class="input-group" style="flex: 1;">
                <label>Alcance do Evento <span class="req">*</span></label>
                <select id="ev-alcance" required>
                   <option value="Todo o Campo">Todo o Campo (Geral)</option>
@@ -733,13 +729,46 @@
                <div id="ev-historico-lista" style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem;"></div>
            </div>
 
-           <div class="form-actions" style="margin-top: 2rem;">
+           <!-- QUEM ESTÁ SALVANDO (próximo ao botão, mais intuitivo) -->
+           <div style="margin-top: 1.5rem; padding: 1rem; background: var(--surface-glass); border: 1px solid var(--border-glass); border-radius: 10px;">
+              <label id="ev-autor-label" style="font-size:0.9rem; font-weight:600; margin-bottom:0.4rem; display:block;">
+                 Adicionado por (Seu Nome) <span class="req">*</span>
+              </label>
+              <input type="text" id="ev-autor" class="uppercase-field" placeholder="SEU NOME" required style="width:100%; margin-bottom:0;">
+           </div>
+
+           <div class="form-actions" style="margin-top: 1rem;">
               <button type="button" class="btn-secondary" id="btn-ev-cancel">Cancelar</button>
               <button type="submit" class="btn-primary" style="flex: 1; display:flex; justify-content:center;">
                  <span id="ev-submit-label">Salvar Evento</span> <i class="ri-save-line" style="margin-left:5px;"></i>
               </button>
            </div>
         </form>
+      </div>
+    </div>
+
+    <!-- CONFIRMAÇÃO DE CADASTRO MODAL -->
+    <div id="modal-confirmar" class="modal">
+      <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+        <div style="text-align:center; margin-bottom: 1.5rem;">
+          <i class="ri-eye-line" style="font-size: 2.5rem; color: var(--primary); display:block; margin-bottom:0.5rem;"></i>
+          <h2 style="margin-bottom: 0.3rem;">Confira seus dados</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Verifique tudo com cuidado antes de enviar — sua carteirinha será impressa com estas informações.</p>
+        </div>
+
+        <!-- Resumo dos dados -->
+        <div id="confirmar-resumo" style="display:flex; flex-direction:column; gap:10px; margin-bottom:1.5rem;">
+          <!-- preenchido via JS -->
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 1rem;">
+          <button id="btn-confirmar-corrigir" class="btn-secondary" style="flex:1; justify-content:center; display:flex; align-items:center; gap:6px;">
+            <i class="ri-arrow-left-line"></i> Corrigir Dados
+          </button>
+          <button id="btn-confirmar-enviar" class="btn-primary glow-eff" style="flex:2; justify-content:center; display:flex; align-items:center; gap:6px; padding:1rem;">
+            <i class="ri-check-double-line"></i> Confirmar e Enviar
+          </button>
+        </div>
       </div>
     </div>
 
