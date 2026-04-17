@@ -54,6 +54,7 @@ function sanitizarMembro(m) {
       nome: m.nome || null,
       congregacao: m.congregacao || null,
       data_jesus: m.data_jesus || null,
+      data_batismo: m.data_batismo || null,   // DATE: nunca enviar ""
       tem_cargo: !!m.tem_cargo,
       cargos: m.cargos || [],
       pai: m.pai || null,
@@ -419,6 +420,7 @@ memberForm.addEventListener('submit', (e) => {
     nome: document.getElementById('nome').value.toUpperCase(),
     congregacao: document.getElementById('congregacao').value,
     data_jesus: jesusStr,
+    data_batismo: document.getElementById('data_batismo').value,
     tem_cargo: checkCargo.checked,
     cargos: cargosObj,
     
@@ -477,6 +479,7 @@ function renderResumoConfirmacao(m) {
         ${row('Congregação', m.congregacao)}
         ${row('Cargo(s) / Função', cargosStr)}
         ${row('Aceitou Jesus em', m.data_jesus)}
+        ${row('Data de Batismo', `<b>${fmtData(m.data_batismo)}</b>`, true)}
 
         ${sec('<i class="ri-profile-line"></i> Dados Pessoais')}
         ${row('Data de Nascimento', `<b>${fmtData(m.nascimento)}</b>`, true)}
@@ -673,6 +676,7 @@ function abrirEdicao(id) {
     document.getElementById('edit-telefone2').value = m.telefone2 || '';
     document.getElementById('edit-estado-civil').value = m.estado_civil;
     document.getElementById('edit-data-jesus').value = m.data_jesus || '';
+    document.getElementById('edit-data-batismo').value = m.data_batismo || '';
     document.getElementById('edit-rg').value = m.rg || '';
     document.getElementById('edit-cpf').value = m.cpf || '';
     
@@ -748,6 +752,7 @@ function processAutoSave() {
     m.telefone2 = document.getElementById('edit-telefone2').value;
     m.estado_civil = document.getElementById('edit-estado-civil').value;
     m.data_jesus = document.getElementById('edit-data-jesus').value.toUpperCase();
+    m.data_batismo = document.getElementById('edit-data-batismo').value || null;
     m.rg = document.getElementById('edit-rg').value.toUpperCase();
     m.cpf = document.getElementById('edit-cpf').value;
     
@@ -1635,9 +1640,10 @@ async function initApp() {
     };
 
     try {
-        setSplashMsg('Buscando membros...');
+        setSplashMsg('Testando conex\u00e3o com Supabase...');
         const { data: dbMembros, error: errM } = await supabase.from('membros').select('*');
         if (errM) throw errM;
+        console.log('%c[Supabase] \u2705 Conex\u00e3o bem-sucedida!', 'color: #22c55e; font-weight: bold;', `${(dbMembros||[]).length} membro(s) carregado(s).`);
 
         setSplashMsg('Buscando eventos...');
         const { data: dbEventos, error: errE } = await supabase.from('eventos').select('*');
