@@ -229,7 +229,15 @@ function switchView(view) {
 }
 
 btnNavForm.addEventListener('click', () => switchView('form'));
-btnNavCrm.addEventListener('click', () => switchView('crm'));
+btnNavCrm.addEventListener('click', () => {
+   if (!isAdminAuthed) {
+      // Não logado: abre modal de login
+      modalLogin.style.display = 'flex';
+   } else {
+      // Logado como admin: vai para CRM
+      switchView('crm');
+   }
+});
 btnNavEventos.addEventListener('click', () => switchView('eventos'));
 
 // --- Autenticação com Supabase Auth ---
@@ -312,24 +320,27 @@ function updateUIByRole() {
    const btnNavCrm = document.getElementById('btn-nav-crm');
    const btnLogout = document.getElementById('btn-logout');
 
+   // O btn-nav-crm SEMPRE aparece: sem login abre modal, com login admin vai ao CRM
+   if (btnNavCrm) {
+      btnNavCrm.style.display = 'block';
+      btnNavCrm.textContent = isAdminAuthed && userRole === 'admin' ? '📋 CRM' : '🔐 Acesso Admin';
+   }
+
    if (!isAdminAuthed) {
       if (btnAddEvento) btnAddEvento.style.display = 'none';
-      if (btnNavCrm) btnNavCrm.style.display = 'none';
       if (btnLogout) btnLogout.style.display = 'none';
       return;
    }
 
    if (userRole === 'admin') {
       if (btnAddEvento) btnAddEvento.style.display = 'block';
-      if (btnNavCrm) btnNavCrm.style.display = 'block';
       if (btnLogout) btnLogout.style.display = 'block';
    } else if (userRole === 'coordenador') {
-      if (btnAddEvento) btnAddEvento.style.display = 'block';  // Coordenador edita eventos
-      if (btnNavCrm) btnNavCrm.style.display = 'none';         // Não acessa CRM
+      if (btnAddEvento) btnAddEvento.style.display = 'block';
+      if (btnNavCrm) btnNavCrm.style.display = 'none'; // Coordenador não acessa CRM
       if (btnLogout) btnLogout.style.display = 'block';
    } else {
       if (btnAddEvento) btnAddEvento.style.display = 'none';
-      if (btnNavCrm) btnNavCrm.style.display = 'none';
       if (btnLogout) btnLogout.style.display = 'none';
    }
 }
