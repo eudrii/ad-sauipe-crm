@@ -283,6 +283,13 @@
                   <button id="ev-next-mes" class="btn-nav-month"><i class="ri-arrow-right-s-line"></i></button>
                </div>
 
+               <!-- Vista Abas -->
+               <div class="crm-tabs" style="margin-bottom: 1.5rem;">
+                  <button class="tab-btn active vista-tab" data-vista="lista" id="vista-tab-lista"><i class="ri-list-check-2"></i> Lista</button>
+                  <button class="tab-btn vista-tab" data-vista="calendario" id="vista-tab-calendario"><i class="ri-calendar-2-line"></i> Calendário</button>
+                  <button class="tab-btn vista-tab" data-vista="cards" id="vista-tab-cards"><i class="ri-image-stack-line"></i> Cards</button>
+               </div>
+
                <!-- Congregation Filter -->
                <div style="background: var(--surface-glass); border: 1px solid var(--border-glass); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
                   <i class="ri-filter-3-line" style="font-size: 1.2rem; color: var(--primary); flex-shrink:0;"></i>
@@ -308,9 +315,25 @@
                   </select>
                </div>
 
-               <!-- Events Cards Grid -->
-               <div id="eventos-grid" class="events-grid">
-                  <!-- JS Rendered -->
+               <!-- VISTA: LISTA -->
+               <div id="vista-lista-container" class="vista-container" style="display:block;">
+                  <div id="eventos-grid" class="events-grid">
+                     <!-- JS Rendered -->
+                  </div>
+               </div>
+
+               <!-- VISTA: CALENDÁRIO -->
+               <div id="vista-calendario-container" class="vista-container" style="display:none;">
+                  <div id="eventos-calendario" class="eventos-calendario">
+                     <!-- JS Rendered: grid 7x5 com dias 1-31 -->
+                  </div>
+               </div>
+
+               <!-- VISTA: CARDS -->
+               <div id="vista-cards-container" class="vista-container" style="display:none;">
+                  <div id="eventos-cards-layout" class="eventos-cards-layout">
+                     <!-- JS Rendered: cards horizontais cartaz direita / info esquerda -->
+                  </div>
                </div>
 
             </div>

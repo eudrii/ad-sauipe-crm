@@ -1751,6 +1751,152 @@ function renderEventos() {
     }
 }
 
+// --- VISTAS DE EVENTOS ---
+let vistaAtual = 'lista';
+
+document.querySelectorAll('.vista-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        vistaAtual = btn.getAttribute('data-vista');
+        document.querySelectorAll('.vista-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.vista-container').forEach(c => c.style.display = 'none');
+        document.getElementById(`vista-${vistaAtual}-container`).style.display = 'block';
+
+        if (vistaAtual === 'calendario') renderCalendario();
+        else if (vistaAtual === 'cards') renderCardsLayout();
+    });
+});
+
+function renderCalendario() {
+    const filterEl = document.getElementById('filter-eventos-cong');
+    const filterEv = filterEl?.value || 'Todos';
+    const container = document.getElementById('eventos-calendario');
+    container.innerHTML = '';
+
+    let expanded = expandirEventos();
+    let evsFiltrados = expanded.filter(ev => {
+        const d = ev.data_sort;
+        if (d.getFullYear() !== evCurrentYear || d.getMonth() !== evCurrentMonth) return false;
+        if (filterEv === 'Todos') return true;
+        return ev.alcance === 'Todo o Campo' || ev.congregacao === filterEv || ev.congregacao_sede === filterEv;
+    });
+
+    // Agrupar por dia
+    const porDia = {};
+    for (let d = 1; d <= 31; d++) porDia[d] = [];
+    evsFiltrados.forEach(ev => {
+        const dia = ev.data_sort.getDate();
+        porDia[dia].push(ev);
+    });
+
+    // Renderizar dias 1-31
+    for (let dia = 1; dia <= 31; dia++) {
+        const divDia = document.createElement('div');
+        divDia.className = 'cal-dia';
+        const eventos = porDia[dia];
+
+        if (eventos.length === 0) {
+            divDia.innerHTML = `
+                <div class="cal-dia-num">${dia}</div>
+                <div class="cal-dia-vazio">·</div>
+            `;
+        } else {
+            let html = `<div class="cal-dia-num">${dia}</div><div class="cal-dia-eventos">`;
+            eventos.slice(0, 3).forEach(ev => {
+                const classe = ev.alcance === 'Todo o Campo' ? 'geral' : '';
+                html += `<div class="cal-ev-badge ${classe}" title="${ev.nome}">${ev.nome.substring(0, 10)}...</div>`;
+            });
+            if (eventos.length > 3) html += `<div style="font-size:0.65rem; color:var(--text-muted);">+${eventos.length - 3}</div>`;
+            html += '</div>';
+            divDia.innerHTML = html;
+        }
+
+        divDia.addEventListener('click', () => {
+            const data = new Date(evCurrentYear, evCurrentMonth, dia);
+            const evDodia = expanded.filter(e => {
+                const d = e.data_sort;
+                return d.getDate() === dia && d.getMonth() === evCurrentMonth && d.getFullYear() === evCurrentYear;
+            });
+            if (evDodia.length > 0) {
+                vistaAtual = 'lista';
+                document.querySelectorAll('.vista-tab').forEach(b => b.classList.remove('active'));
+                document.getElementById('vista-tab-lista').classList.add('active');
+                document.querySelectorAll('.vista-container').forEach(c => c.style.display = 'none');
+                document.getElementById('vista-lista-container').style.display = 'block';
+                renderEventos();
+            }
+        });
+        container.appendChild(divDia);
+    }
+}
+
+function renderCardsLayout() {
+    const filterEl = document.getElementById('filter-eventos-cong');
+    const filterEv = filterEl?.value || 'Todos';
+    const container = document.getElementById('eventos-cards-layout');
+    container.innerHTML = '';
+
+    let expanded = expandirEventos();
+    let evsFiltrados = expanded.filter(ev => {
+        const d = ev.data_sort;
+        if (d.getFullYear() !== evCurrentYear || d.getMonth() !== evCurrentMonth) return false;
+        if (filterEv === 'Todos') return true;
+        return ev.alcance === 'Todo o Campo' || ev.congregacao === filterEv || ev.congregacao_sede === filterEv;
+    });
+
+    evsFiltrados.sort((a, b) => a.data_sort - b.data_sort);
+
+    evsFiltrados.forEach(ev => {
+        const dataFmt = ev.data_sort.toLocaleDateString('pt-BR');
+        const horaFmt = ev.hora_display || '—';
+        const localFmt = ev.local || (ev.congregacao_sede || ev.congregacao || '');
+
+        const card = document.createElement('div');
+        card.className = 'card-evento-horizontal';
+        card.innerHTML = `
+            <div class="card-ev-info">
+                <div>
+                    <div class="card-ev-nome">${ev.nome}</div>
+                    <div class="card-ev-details">
+                        <div class="card-ev-detail-row">
+                            <i class="ri-calendar-line"></i>
+                            <span>${dataFmt}</span>
+                        </div>
+                        <div class="card-ev-detail-row">
+                            <i class="ri-time-line"></i>
+                            <span>${horaFmt}</span>
+                        </div>
+                        <div class="card-ev-detail-row">
+                            <i class="ri-map-pin-line"></i>
+                            <span>${localFmt}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-ev-badges">
+                    <span class="card-ev-badge ${ev.alcance === 'Todo o Campo' ? 'geral' : ''}">
+                        ${ev.alcance === 'Todo o Campo' ? 'Geral' : ev.congregacao || ev.congregacao_sede}
+                    </span>
+                </div>
+            </div>
+            <div class="card-ev-imagem">
+                ${ev.cartaz
+                    ? `<img src="${ev.cartaz}" alt="${ev.nome}">`
+                    : `<div class="card-ev-no-img"><i class="ri-image-line"></i><span>Sem cartaz</span></div>`}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    if (evsFiltrados.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:4rem 2rem; color:var(--text-muted);">
+                <i class="ri-calendar-clear-line" style="font-size:3rem; display:block; margin-bottom:1rem; opacity:0.5;"></i>
+                <p>Nenhum evento neste período</p>
+            </div>
+        `;
+    }
+}
+
 function renderAniversariantes() {
     const mes = parseInt(document.getElementById('aniv-mes-sel').value);
     const mesNum = (mes + 1).toString().padStart(2, '0');
@@ -1857,19 +2003,29 @@ document.getElementById('ev-tab-aniversariantes').addEventListener('click', () =
     renderAniversariantes();
 });
 
+function atualizarMesVista() {
+    if (vistaAtual === 'lista') renderEventos();
+    else if (vistaAtual === 'calendario') renderCalendario();
+    else if (vistaAtual === 'cards') renderCardsLayout();
+}
+
 document.getElementById('ev-prev-mes').addEventListener('click', () => {
     evCurrentMonth--;
     if (evCurrentMonth < 0) { evCurrentMonth = 11; evCurrentYear--; }
-    renderEventos();
+    atualizarMesVista();
 });
 
 document.getElementById('ev-next-mes').addEventListener('click', () => {
     evCurrentMonth++;
     if (evCurrentMonth > 11) { evCurrentMonth = 0; evCurrentYear++; }
-    renderEventos();
+    atualizarMesVista();
 });
 
-document.getElementById('filter-eventos-cong').addEventListener('change', renderEventos);
+document.getElementById('filter-eventos-cong').addEventListener('change', () => {
+    if (vistaAtual === 'lista') renderEventos();
+    else if (vistaAtual === 'calendario') renderCalendario();
+    else if (vistaAtual === 'cards') renderCardsLayout();
+});
 document.getElementById('aniv-mes-sel').addEventListener('change', renderAniversariantes);
 document.getElementById('aniv-cong-sel').addEventListener('change', renderAniversariantes);
 

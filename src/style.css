@@ -1350,3 +1350,198 @@
 }
 
 .conf-aviso i { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ===== VISTAS DE EVENTOS ===== */
+.vista-container { display: none; }
+.vista-container.active { display: block; }
+
+/* VISTA: CALENDÁRIO */
+.eventos-calendario {
+   display: grid;
+   grid-template-columns: repeat(7, 1fr);
+   gap: 8px;
+   margin-bottom: 2rem;
+}
+
+.cal-dia {
+   aspect-ratio: 1;
+   border: 1px solid var(--border-glass);
+   border-radius: 12px;
+   padding: 8px;
+   background: var(--surface-glass);
+   display: flex;
+   flex-direction: column;
+   position: relative;
+   cursor: pointer;
+   transition: all 0.2s;
+}
+
+.cal-dia:hover {
+   border-color: var(--primary);
+   background: var(--surface-glass);
+   transform: translateY(-2px);
+   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.cal-dia-num {
+   font-weight: 700;
+   font-size: 1.1rem;
+   color: var(--text-main);
+   margin-bottom: 4px;
+}
+
+.cal-dia-eventos {
+   flex: 1;
+   overflow: hidden;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+   font-size: 0.7rem;
+}
+
+.cal-ev-badge {
+   background: var(--primary);
+   color: white;
+   padding: 2px 6px;
+   border-radius: 4px;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   font-weight: 600;
+}
+
+.cal-ev-badge.geral { background: var(--secondary); }
+.cal-dia-vazio { color: var(--text-muted); font-size: 2rem; display: flex; align-items: center; justify-content: center; }
+
+/* VISTA: CARDS RETANGULARES */
+.eventos-cards-layout {
+   display: flex;
+   flex-direction: column;
+   gap: 1.2rem;
+}
+
+.card-evento-horizontal {
+   display: grid;
+   grid-template-columns: 1fr 200px;
+   gap: 1.5rem;
+   align-items: stretch;
+   background: var(--surface-glass);
+   border: 1px solid var(--border-glass);
+   border-radius: 12px;
+   overflow: hidden;
+   transition: all 0.3s;
+}
+
+.card-evento-horizontal:hover {
+   border-color: var(--primary);
+   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.card-ev-info {
+   padding: 1.5rem;
+   display: flex;
+   flex-direction: column;
+   justify-content: space-between;
+}
+
+.card-ev-nome {
+   font-size: 1.3rem;
+   font-weight: 700;
+   color: var(--text-main);
+   margin-bottom: 0.8rem;
+   line-height: 1.3;
+}
+
+.card-ev-details {
+   display: flex;
+   flex-direction: column;
+   gap: 0.6rem;
+   font-size: 0.9rem;
+   color: var(--text-muted);
+   margin-bottom: 0.8rem;
+}
+
+.card-ev-detail-row {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+}
+
+.card-ev-detail-row i {
+   font-size: 1rem;
+   color: var(--primary);
+   flex-shrink: 0;
+}
+
+.card-ev-badges {
+   display: flex;
+   gap: 6px;
+   flex-wrap: wrap;
+}
+
+.card-ev-badge {
+   background: var(--primary);
+   color: white;
+   padding: 4px 10px;
+   border-radius: 6px;
+   font-size: 0.75rem;
+   font-weight: 600;
+}
+
+.card-ev-badge.geral { background: var(--secondary); }
+
+.card-ev-imagem {
+   width: 200px;
+   height: auto;
+   background: linear-gradient(135deg, var(--primary), var(--secondary));
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: white;
+   font-size: 2rem;
+   overflow: hidden;
+   position: relative;
+}
+
+.card-ev-imagem img {
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+}
+
+.card-ev-no-img {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   gap: 8px;
+   color: rgba(255,255,255,0.7);
+   font-size: 0.85rem;
+}
+
+.card-ev-no-img i { font-size: 2.5rem; }
+
+/* Responsivo */
+@media (max-width: 768px) {
+   .card-evento-horizontal {
+      grid-template-columns: 1fr;
+   }
+   .card-ev-imagem {
+      width: 100%;
+      height: 200px;
+   }
+   .eventos-calendario {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+   }
+   .cal-dia {
+      padding: 4px;
+   }
+   .cal-dia-num {
+      font-size: 0.9rem;
+   }
+   .cal-ev-badge {
+      font-size: 0.6rem;
+      padding: 1px 4px;
+   }
+}
