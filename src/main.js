@@ -68,6 +68,8 @@ function sanitizarMembro(m) {
       cpf: m.cpf || null,
       telefone: m.telefone || null,
       telefone2: m.telefone2 || null,
+      contato_emergencia_nome: m.contato_emergencia_nome || null,
+      contato_emergencia_tel: m.contato_emergencia_tel || null,
       eca: m.eca || { entregue: false, link: '', data: '' },
       data_cadastro: m.data_cadastro || new Date().toISOString(),
    };
@@ -297,16 +299,8 @@ adicionarCampoCargo();
 checkCargo.addEventListener('change', (e) => {
    if (e.target.checked) {
       cargosContainer.style.display = 'block';
-      containerDocs.style.display = 'block';
-      rgInput.setAttribute('required', 'true');
-      cpfInput.setAttribute('required', 'true');
    } else {
       cargosContainer.style.display = 'none';
-      containerDocs.style.display = 'none';
-      rgInput.removeAttribute('required');
-      cpfInput.removeAttribute('required');
-      rgInput.value = '';
-      cpfInput.value = '';
       document.querySelectorAll('.cargo-f, .cargo-d').forEach(i => i.value = '');
    }
 });
@@ -376,10 +370,12 @@ function cpfMask(v) {
 applyMask(document.getElementById('telefone'), phoneMask);
 applyMask(document.getElementById('telefone2'), phoneMask);
 applyMask(document.getElementById('cpf'), cpfMask);
+applyMask(document.getElementById('contato_emergencia_tel'), phoneMask);
 
 applyMask(document.getElementById('edit-telefone'), phoneMask);
 applyMask(document.getElementById('edit-telefone2'), phoneMask);
 applyMask(document.getElementById('edit-cpf'), cpfMask);
+applyMask(document.getElementById('edit-contato-emergencia-tel'), phoneMask);
 
 // --- Form Submission ---
 // --- Review and Confirmation Flow ---
@@ -439,6 +435,9 @@ memberForm.addEventListener('submit', (e) => {
     telefone: document.getElementById('telefone').value,
     telefone2: document.getElementById('telefone2').value,
     
+    contato_emergencia_nome: document.getElementById('contato_emergencia_nome').value.toUpperCase(),
+    contato_emergencia_tel: document.getElementById('contato_emergencia_tel').value,
+    
     eca: { entregue: false, link: '', data: '' },
     data_cadastro: new Date().toISOString()
   };
@@ -497,6 +496,10 @@ function renderResumoConfirmacao(m) {
         ${sec('<i class="ri-phone-line"></i> Contato')}
         ${row('Celular 1', `<b>${m.telefone}</b>`, true)}
         ${row('Celular 2', m.telefone2)}
+
+        ${sec('<i class="ri-user-heart-line"></i> Contato de Emergência')}
+        ${row('Nome', `<b>${m.contato_emergencia_nome}</b>`, true)}
+        ${row('Telefone', m.contato_emergencia_tel)}
 
         <div class="conf-aviso">
             <i class="ri-error-warning-fill"></i>
@@ -679,6 +682,8 @@ function abrirEdicao(id) {
     document.getElementById('edit-data-batismo').value = m.data_batismo || '';
     document.getElementById('edit-rg').value = m.rg || '';
     document.getElementById('edit-cpf').value = m.cpf || '';
+    document.getElementById('edit-contato-emergencia-nome').value = m.contato_emergencia_nome || '';
+    document.getElementById('edit-contato-emergencia-tel').value = m.contato_emergencia_tel || '';
     
     document.getElementById('edit-pai').value = m.pai || '';
     document.getElementById('edit-mae').value = m.mae || '';
@@ -755,6 +760,8 @@ function processAutoSave() {
     m.data_batismo = document.getElementById('edit-data-batismo').value || null;
     m.rg = document.getElementById('edit-rg').value.toUpperCase();
     m.cpf = document.getElementById('edit-cpf').value;
+    m.contato_emergencia_nome = document.getElementById('edit-contato-emergencia-nome').value.toUpperCase();
+    m.contato_emergencia_tel = document.getElementById('edit-contato-emergencia-tel').value;
     
     m.pai = document.getElementById('edit-pai').value.toUpperCase();
     m.mae = document.getElementById('edit-mae').value.toUpperCase();
@@ -1410,7 +1417,7 @@ function renderEventos() {
                     <div class="ev-card-actions" style="margin-top: 10px; border-top: 1px solid var(--border-glass); padding-top: 10px; justify-content: space-between;">
                         ${ev.cartaz ? `
                         <button class="btn-sm btn-download-evt" data-url="${ev.cartaz}" data-name="${ev.nome}" title="Baixar Cartaz" style="color:var(--primary); background:transparent; border:none; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                            <i class="ri-download-2-line"></i> Download
+                            <i class="ri-download-2-line"></i> Baixar Cartaz
                         </button>` : '<span></span>'}
 
                         ${isAdminAuthed ? `

@@ -183,17 +183,17 @@
                </div>
             </div>
 
-            <!-- Documentos (Only for Cargos) -->
-            <div class="form-section" id="container-documentos" style="display: none;">
-               <h3><i class="ri-file-user-line"></i> Documentos (Obrigatório para Obreiros)</h3>
+            <!-- Documentos (Obrigatório para todos) -->
+            <div class="form-section" id="container-documentos">
+               <h3><i class="ri-file-user-line"></i> Documentos</h3>
                <div class="input-row">
                  <div class="input-group">
                    <label for="rg">RG <span class="req">*</span></label>
-                   <input type="text" id="rg" placeholder="NUM. RG" maxlength="20" class="uppercase-field">
+                   <input type="text" id="rg" placeholder="NUM. RG" maxlength="20" class="uppercase-field" required>
                  </div>
                  <div class="input-group">
                    <label for="cpf">CPF <span class="req">*</span></label>
-                   <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" class="uppercase-field">
+                   <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" class="uppercase-field" required>
                  </div>
                </div>
             </div>
@@ -209,6 +209,21 @@
                  <div class="input-group">
                     <label for="telefone2">Celular 2 (Opcional)</label>
                     <input type="tel" id="telefone2" placeholder="(00) 00000-0000" maxlength="15">
+                 </div>
+              </div>
+            </div>
+
+            <!-- Contato de Emergência -->
+            <div class="form-section">
+              <h3><i class="ri-user-heart-line"></i> Contato de Emergência</h3>
+              <div class="input-row">
+                 <div class="input-group">
+                    <label for="contato_emergencia_nome">Nome do Contato <span class="req">*</span></label>
+                    <input type="text" id="contato_emergencia_nome" placeholder="NOME COMPLETO" class="uppercase-field" required maxlength="100">
+                 </div>
+                 <div class="input-group">
+                    <label for="contato_emergencia_tel">Telefone do Contato <span class="req">*</span></label>
+                    <input type="tel" id="contato_emergencia_tel" placeholder="(00) 00000-0000" required maxlength="15">
                  </div>
               </div>
             </div>
@@ -533,6 +548,18 @@
               </div>
            </div>
 
+           <!-- Contato de Emergência -->
+           <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                 <label>Contato de Emergência (Nome)</label>
+                 <input type="text" id="edit-contato-emergencia-nome" class="uppercase-field" placeholder="NOME">
+              </div>
+              <div class="input-group">
+                 <label>Contato de Emergência (Telefone)</label>
+                 <input type="tel" id="edit-contato-emergencia-tel" placeholder="(00) 00000-0000" maxlength="15">
+              </div>
+           </div>
+
            <!-- ECA Compliance Box (Admin Only) -->
            <div id="box-eca" style="border: 2px dashed var(--border-glass); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; background: rgba(0,0,0,0.02); transition: all 0.3s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -761,9 +788,11 @@
     <div id="modal-confirmar" class="modal">
       <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
         <div style="text-align:center; margin-bottom: 1.5rem;">
-          <i class="ri-eye-line" style="font-size: 2.5rem; color: var(--primary); display:block; margin-bottom:0.5rem;"></i>
-          <h2 style="margin-bottom: 0.3rem;">Confira seus dados</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">Verifique tudo com cuidado antes de enviar — sua carteirinha será impressa com estas informações.</p>
+          <i class="ri-error-warning-fill" style="font-size: 3rem; color: #ea580c; display:block; margin-bottom:0.5rem;"></i>
+          <h2 style="margin-bottom: 0.5rem; color: #ea580c;">⚠️ Por favor, confira e confirme!</h2>
+          <p style="color: var(--text-main); font-size: 1rem; font-weight: 500; padding: 0 1rem;">
+            Se algum dado for enviado errado, sua carteirinha será impressa com os dados errados e não poderá ser refeita imediatamente. Verifique com atenção!
+          </p>
         </div>
 
         <!-- Resumo dos dados -->
