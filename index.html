@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>AD Sauípe - Membros e CRM</title>
+    <title>AD Sauípe - Agenda e Cadastro</title>
     <!-- Outfit Font for Modern Vibe -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -261,7 +261,10 @@
                  <p>Eventos e aniversariantes da AD Sauípe e suas congregações.</p>
                  <small style="color: var(--text-muted); opacity: 0.8; margin-top: 5px; display: block;">IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS DE SAUÍPE | CNPJ 41.892.153/0001-78</small>
                </div>
-               <button id="btn-open-add-evento" class="btn-primary" style="padding: 0.8rem 1.5rem; flex-shrink:0;"><i class="ri-calendar-event-line"></i> Adicionar Evento</button>
+               <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+                  <button id="btn-open-import-evento" class="btn-secondary" style="padding: 0.8rem 1.2rem; display:none;"><i class="ri-upload-2-line"></i> Importar JSON</button>
+                  <button id="btn-open-add-evento" class="btn-primary" style="padding: 0.8rem 1.5rem;"><i class="ri-calendar-event-line"></i> Adicionar Evento</button>
+               </div>
             </div>
 
             <!-- TABS -->
@@ -907,6 +910,86 @@
        <p style="font-weight: 700; color: var(--text-main); margin-bottom: 5px;">IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS DE SAUÍPE</p>
        <p style="font-size: 0.85rem; color: var(--text-muted);">CNPJ 41.892.153/0001-78</p>
     </footer>
+
+    <!-- MODAL: IMPORTAR EVENTOS EM MASSA -->
+    <div id="modal-import-eventos" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <button class="close-btn" id="close-import-eventos"><i class="ri-close-line"></i></button>
+        <h2 style="margin-bottom: 1rem; display:flex; align-items:center; gap:8px;">
+          <i class="ri-upload-2-line" style="color: var(--primary)"></i> Importar Eventos em Massa
+        </h2>
+
+        <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+          Cole um array JSON com os eventos abaixo e clique em <b>Importar</b>. Eventos com o mesmo <code>id</code> serão atualizados; novos sem <code>id</code> receberão um gerado automaticamente.
+        </p>
+
+        <textarea id="import-json-input" rows="12" placeholder="Cole o JSON aqui..." style="width:100%; font-family: monospace; font-size:0.82rem; padding:0.8rem; border:1px solid var(--border-glass); border-radius:8px; resize:vertical; background: rgba(0,0,0,0.03);"></textarea>
+
+        <div id="import-json-feedback" style="margin: 0.5rem 0; font-size: 0.85rem; min-height: 1.4em;"></div>
+
+        <div style="display:flex; gap:0.8rem; justify-content:flex-end; margin-top: 0.5rem;">
+          <button id="btn-import-json-confirm" class="btn-primary"><i class="ri-check-line"></i> Importar</button>
+        </div>
+
+        <!-- MODELO -->
+        <hr style="margin: 1.5rem 0; border-color: var(--border-glass);">
+        <details open>
+          <summary style="font-weight: 600; cursor: pointer; color: var(--primary); margin-bottom: 0.8rem;">📄 Modelo de JSON (clique para expandir/recolher)</summary>
+          <pre id="import-json-modelo" style="background: rgba(0,0,0,0.04); border-radius: 8px; padding: 1rem; font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap; color: var(--text-main);">[
+  {
+    "nome": "CONGRESSO JOVENS",
+    "alcance": "Todo o Campo",
+    "congregacao": null,
+    "congregacao_sede": "Sauipe (Sede)",
+    "local": "TEMPLO SEDE",
+    "cartaz": null,
+    "responsaveis": [
+      { "nome": "JOÃO SILVA", "telefone": "71999990000" }
+    ],
+    "regras": {
+      "tipo": "pontual",
+      "pontual_data": "2026-06-14",
+      "pontual_hora": "19:00",
+      "pontual_data_fim": null
+    }
+  },
+  {
+    "nome": "CULTO DE DOMINGO",
+    "alcance": "Congregação",
+    "congregacao": "Sauipe (Sede)",
+    "congregacao_sede": null,
+    "local": "",
+    "cartaz": null,
+    "responsaveis": [],
+    "regras": {
+      "tipo": "repetitivo",
+      "repete_dias": ["0"],
+      "repete_hora": "18:00",
+      "repete_data_inicio": "2026-01-01",
+      "repete_data_fim": "2026-12-31"
+    }
+  },
+  {
+    "nome": "CONFERÊNCIA MINISTERIAL",
+    "alcance": "Todo o Campo",
+    "congregacao": null,
+    "congregacao_sede": "Sauipe (Sede)",
+    "local": "TEMPLO SEDE",
+    "cartaz": null,
+    "responsaveis": [],
+    "regras": {
+      "tipo": "multiplos",
+      "multiplos_datas": ["2026-07-10", "2026-07-11", "2026-07-12"],
+      "multiplos_hora": "19:30"
+    }
+  }
+]</pre>
+          <button onclick="document.getElementById('import-json-input').value = document.getElementById('import-json-modelo').textContent" style="margin-top:0.5rem; padding:0.4rem 1rem; border-radius:6px; border:1px solid var(--border-glass); background: var(--surface-glass); cursor:pointer; font-size:0.82rem;">
+            <i class="ri-file-copy-line"></i> Usar este modelo
+          </button>
+        </details>
+      </div>
+    </div>
 
     <!-- MAIN MODULE -->
     <script type="module" src="/src/main.js"></script>

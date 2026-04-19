@@ -332,30 +332,35 @@ function updateAdminUI() {
 
 function updateUIByRole() {
    const btnAddEvento = document.getElementById('btn-open-add-evento');
+   const btnImportEvento = document.getElementById('btn-open-import-evento');
    const btnNavCrm = document.getElementById('btn-nav-crm');
    const btnLogout = document.getElementById('btn-logout');
 
    // O btn-nav-crm SEMPRE aparece: sem login abre modal, com login admin vai ao CRM
    if (btnNavCrm) {
       btnNavCrm.style.display = 'block';
-      btnNavCrm.textContent = isAdminAuthed && userRole === 'admin' ? '📋 CRM' : '🔐 Acesso Admin';
+      btnNavCrm.textContent = isAdminAuthed && userRole === 'admin' ? '📋 Painel' : '🔐 Acesso Admin';
    }
 
    if (!isAdminAuthed) {
       if (btnAddEvento) btnAddEvento.style.display = 'none';
+      if (btnImportEvento) btnImportEvento.style.display = 'none';
       if (btnLogout) btnLogout.style.display = 'none';
       return;
    }
 
    if (userRole === 'admin') {
       if (btnAddEvento) btnAddEvento.style.display = 'block';
+      if (btnImportEvento) btnImportEvento.style.display = 'block';
       if (btnLogout) btnLogout.style.display = 'block';
    } else if (userRole === 'coordenador') {
       if (btnAddEvento) btnAddEvento.style.display = 'block';
-      if (btnNavCrm) btnNavCrm.style.display = 'none'; // Coordenador não acessa CRM
+      if (btnImportEvento) btnImportEvento.style.display = 'block';
+      if (btnNavCrm) btnNavCrm.style.display = 'none'; // Coordenador não acessa Painel
       if (btnLogout) btnLogout.style.display = 'block';
    } else {
       if (btnAddEvento) btnAddEvento.style.display = 'none';
+      if (btnImportEvento) btnImportEvento.style.display = 'none';
       if (btnLogout) btnLogout.style.display = 'none';
    }
 }
@@ -1053,6 +1058,58 @@ btnOpenAddEvento.addEventListener('click', () => {
 
 closeEvento.addEventListener('click', () => modalEvento.style.display = 'none');
 document.getElementById('btn-ev-cancel').addEventListener('click', () => modalEvento.style.display = 'none');
+
+// --- Importar Eventos em Massa ---
+const modalImport = document.getElementById('modal-import-eventos');
+document.getElementById('btn-open-import-evento').addEventListener('click', () => {
+   document.getElementById('import-json-input').value = '';
+   document.getElementById('import-json-feedback').textContent = '';
+   modalImport.style.display = 'flex';
+});
+document.getElementById('close-import-eventos').addEventListener('click', () => {
+   modalImport.style.display = 'none';
+});
+modalImport.addEventListener('click', e => { if (e.target === modalImport) modalImport.style.display = 'none'; });
+
+document.getElementById('btn-import-json-confirm').addEventListener('click', async () => {
+   const feedback = document.getElementById('import-json-feedback');
+   const raw = document.getElementById('import-json-input').value.trim();
+   if (!raw) { feedback.innerHTML = '<span style="color:red">❌ Cole o JSON antes de importar.</span>'; return; }
+
+   let parsed;
+   try { parsed = JSON.parse(raw); } catch(e) {
+      feedback.innerHTML = `<span style="color:red">❌ JSON inválido: ${e.message}</span>`;
+      return;
+   }
+   if (!Array.isArray(parsed)) { feedback.innerHTML = '<span style="color:red">❌ O JSON deve ser um array [ ... ].</span>'; return; }
+
+   feedback.innerHTML = '<span style="color:var(--primary)">⏳ Importando...</span>';
+   let ok = 0, fail = 0;
+   for (const ev of parsed) {
+      const novo = sanitizarEvento({
+         id: ev.id || crypto.randomUUID(),
+         nome: ev.nome || 'SEM NOME',
+         alcance: ev.alcance || 'Congregação',
+         congregacao: ev.congregacao || null,
+         congregacao_sede: ev.congregacao_sede || null,
+         local: ev.local || '',
+         cartaz: ev.cartaz || null,
+         responsaveis: ev.responsaveis || [],
+         regras: ev.regras || {},
+         eca: ev.eca || [],
+         historico: ev.historico || [{ acao: 'Criado', por: currentUser?.email || 'importação', em: new Date().toISOString() }]
+      });
+      const err = await dbSalvarEvento(novo);
+      if (!err) {
+         const idx = eventos.findIndex(e => e.id === novo.id);
+         if (idx >= 0) eventos[idx] = novo; else eventos.push(novo);
+         ok++;
+      } else { fail++; }
+   }
+   salvarEventosLocal();
+   renderEventos();
+   feedback.innerHTML = `<span style="color:#10b981">✅ ${ok} evento(s) importado(s) com sucesso.</span>${fail ? ` <span style="color:red">${fail} falhou.</span>` : ''}`;
+});
 
 // Form display logic
 const evAlcance = document.getElementById('ev-alcance');
