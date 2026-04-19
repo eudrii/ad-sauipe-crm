@@ -2,9 +2,9 @@ import './style.css';
 import { supabase } from './lib/supabase.js';
 
 const CONGREGRACOES = [
-  "Areal", "Alto da Vitória", "Barro Branco", "Curralinho", "Diogo", "Estiva", 
-  "Foz do Imbassai", "Haras", "Imbassai", "Jardim Imbassai", "Patioba", 
-  "Santo Antônio", "Sitio Santo Antônio", "Vila Mar", "Vila Margarida", "Castro", "Sauipe (Sede)", "Todo o Campo"
+  "Alto da Vitória", "Areal", "Barro Branco", "Castro", "Curralinho", "Diogo",
+  "Estiva", "Foz do Imbassai", "Haras", "Imbassai", "Jardim Imbassai", "Patioba",
+  "Santo Antônio", "Sauipe (Sede)", "Sitio Santo Antônio", "Vila Mar", "Vila Margarida", "Todo o Campo"
 ];
 
 const DEPARTAMENTOS = [
@@ -256,6 +256,9 @@ modalLogin.addEventListener('click', (e) => {
       modalLogin.style.display = 'none';
    }
 });
+
+// --- Form principal de cadastro ---
+const memberForm = document.getElementById('member-form');
 
 // --- Dynamic Form Logic ---
 const estadoCivil = document.getElementById('estado_civil');
