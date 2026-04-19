@@ -1083,32 +1083,105 @@ document.getElementById('btn-import-json-confirm').addEventListener('click', asy
    }
    if (!Array.isArray(parsed)) { feedback.innerHTML = '<span style="color:red">❌ O JSON deve ser um array [ ... ].</span>'; return; }
 
-   feedback.innerHTML = '<span style="color:var(--primary)">⏳ Importando...</span>';
-   let ok = 0, fail = 0;
+   // Função para extrair todas as datas expandidas de um evento
+   function getDatasEvento(ev) {
+      const datas = [];
+      if (ev.regras.tipo === 'pontual') {
+         datas.push(ev.regras.pontual_data);
+      } else if (ev.regras.tipo === 'multiplos') {
+         datas.push(...(ev.regras.multiplos_datas || []));
+      } else if (ev.regras.tipo === 'repetitivo') {
+         const inicio = new Date(ev.regras.repete_data_inicio);
+         const fim = new Date(ev.regras.repete_data_fim);
+         const diasSemana = ev.regras.repete_dias?.map(d => parseInt(d)) || [];
+         let d = new Date(inicio);
+         while (d <= fim) {
+            if (diasSemana.includes(d.getDay())) {
+               datas.push(d.toISOString().split('T')[0]);
+            }
+            d.setDate(d.getDate() + 1);
+         }
+      }
+      return datas;
+   }
+
+   // Verificar conflitos
+   let conflitos = [];
    for (const ev of parsed) {
-      const novo = sanitizarEvento({
-         id: ev.id || crypto.randomUUID(),
+      const novo = {
          nome: ev.nome || 'SEM NOME',
          alcance: ev.alcance || 'Congregação',
          congregacao: ev.congregacao || null,
          congregacao_sede: ev.congregacao_sede || null,
-         local: ev.local || '',
-         cartaz: ev.cartaz || null,
-         responsaveis: ev.responsaveis || [],
-         regras: ev.regras || {},
-         eca: ev.eca || [],
-         historico: ev.historico || [{ acao: 'Criado', por: currentUser?.email || 'importação', em: new Date().toISOString() }]
-      });
-      const err = await dbSalvarEvento(novo);
-      if (!err) {
-         const idx = eventos.findIndex(e => e.id === novo.id);
-         if (idx >= 0) eventos[idx] = novo; else eventos.push(novo);
-         ok++;
-      } else { fail++; }
+         regras: ev.regras || {}
+      };
+      const horaStr = novo.regras.pontual_hora || novo.regras.multiplos_hora || novo.regras.repete_hora || '';
+      const novasDatas = getDatasEvento(novo);
+
+      for (const data of novasDatas) {
+         for (const existente of eventos) {
+            const existenteDatas = getDatasEvento(existente);
+            if (existenteDatas.includes(data) &&
+                horaStr === (existente.regras.pontual_hora || existente.regras.multiplos_hora || existente.regras.repete_hora || '') &&
+                novo.alcance === existente.alcance) {
+               conflitos.push(`<b>${novo.nome}</b> em ${data} às ${horaStr} (mesmo alcance: "${novo.alcance}")`);
+            }
+         }
+      }
    }
-   salvarEventosLocal();
-   renderEventos();
-   feedback.innerHTML = `<span style="color:#10b981">✅ ${ok} evento(s) importado(s) com sucesso.</span>${fail ? ` <span style="color:red">${fail} falhou.</span>` : ''}`;
+
+   if (conflitos.length > 0) {
+      feedback.innerHTML = `
+         <div style="background:rgba(239,68,68,0.1); border-left:3px solid #ef4444; padding:0.8rem; border-radius:4px; margin-bottom:0.8rem;">
+            <b style="color:#dc2626">⚠️ Conflito detectado:</b><br>
+            ${conflitos.join('<br>')}
+            <br><br>
+            <button id="btn-import-anyway" style="margin-top:0.5rem; padding:0.4rem 0.8rem; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:600;">
+               Importar mesmo assim
+            </button>
+         </div>
+      `;
+      document.getElementById('btn-import-anyway').addEventListener('click', () => executarImportacao());
+      return;
+   }
+
+   executarImportacao();
+
+   async function executarImportacao() {
+      feedback.innerHTML = '<span style="color:var(--primary)">⏳ Importando...</span>';
+      let ok = 0, fail = 0;
+      for (const ev of parsed) {
+         const novo = sanitizarEvento({
+            id: ev.id || crypto.randomUUID(),
+            nome: ev.nome || 'SEM NOME',
+            alcance: ev.alcance || 'Congregação',
+            congregacao: ev.congregacao || null,
+            congregacao_sede: ev.congregacao_sede || null,
+            local: ev.local || '',
+            cartaz: ev.cartaz || null,
+            responsaveis: ev.responsaveis || [],
+            regras: ev.regras || {},
+            eca: ev.eca || [],
+            historico: ev.historico || [{ acao: 'Criado', por: currentUser?.email || 'importação', em: new Date().toISOString() }]
+         });
+         const err = await dbSalvarEvento(novo);
+         if (!err) ok++; else fail++;
+      }
+
+      // Recarrega eventos do Supabase para sincronizar
+      try {
+         const { data: dbEventos } = await supabase.from('eventos').select('*');
+         if (dbEventos) {
+            eventos = dbEventos;
+            historyStack = [JSON.stringify(eventos)];
+            salvarEventosLocal();
+         }
+      } catch(e) { console.warn('Não foi possível recarregar eventos:', e); }
+
+      renderEventos();
+      modalImport.style.display = 'none';
+      feedback.innerHTML = `<span style="color:#10b981">✅ ${ok} evento(s) importado(s) com sucesso.</span>${fail ? ` <span style="color:red">${fail} falhou.</span>` : ''}`;
+   }
 });
 
 // Form display logic
