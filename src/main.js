@@ -1495,6 +1495,9 @@ function renderEventos() {
             card.className = `ev-card${isEnded ? ' ev-card-ended' : ''}`;
 
             const dataFormatada = ev.instance_date.split('-').reverse().join('/');
+            const diasSemana = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+            const [ano, mes, dia] = ev.instance_date.split('-').map(Number);
+            const diaSemana = diasSemana[new Date(ano, mes - 1, dia).getDay()];
             let horaDisp = '';
             if (ev.regras.tipo === 'pontual') horaDisp = ev.regras.pontual_hora;
             else if (ev.regras.tipo === 'multiplos') horaDisp = ev.regras.multiplos_hora;
@@ -1535,7 +1538,7 @@ function renderEventos() {
                 </div>
                 <div class="ev-info">
                     <h3>${ev.nome}</h3>
-                    <div class="ev-detail"><i class="ri-calendar-line"></i><span><b>${dataFormatada}</b>${horaStr}</span></div>
+                    <div class="ev-detail"><i class="ri-calendar-line"></i><span><b>${dataFormatada}</b>${horaStr} <span style="color:var(--text-muted); font-size:0.85em;">(${diaSemana})</span></span></div>
                     ${ev.local ? `<div class="ev-detail"><i class="ri-map-pin-line"></i><span>${ev.local}</span></div>` : ''}
                     ${respHtml ? `
                     <div class="ev-resps-container">
