@@ -70,6 +70,8 @@ function sanitizarMembro(m) {
       telefone2: m.telefone2 || null,
       contato_emergencia_nome: m.contato_emergencia_nome || null,
       contato_emergencia_tel: m.contato_emergencia_tel || null,
+      data_carteirinha: m.data_carteirinha || null,   // DATE: nunca enviar ""
+      obs_carteirinha: m.obs_carteirinha || null,
       eca: m.eca || { entregue: false, link: '', data: '' },
       data_cadastro: m.data_cadastro || new Date().toISOString(),
    };
@@ -687,6 +689,8 @@ function abrirEdicao(id) {
     document.getElementById('edit-cpf').value = m.cpf || '';
     document.getElementById('edit-contato-emergencia-nome').value = m.contato_emergencia_nome || '';
     document.getElementById('edit-contato-emergencia-tel').value = m.contato_emergencia_tel || '';
+    document.getElementById('edit-data-carteirinha').value = m.data_carteirinha || '';
+    document.getElementById('edit-obs-carteirinha').value = m.obs_carteirinha || '';
     
     document.getElementById('edit-pai').value = m.pai || '';
     document.getElementById('edit-mae').value = m.mae || '';
@@ -765,6 +769,8 @@ function processAutoSave() {
     m.cpf = document.getElementById('edit-cpf').value;
     m.contato_emergencia_nome = document.getElementById('edit-contato-emergencia-nome').value.toUpperCase();
     m.contato_emergencia_tel = document.getElementById('edit-contato-emergencia-tel').value;
+    m.data_carteirinha = document.getElementById('edit-data-carteirinha').value || null;  // null para Postgres DATE
+    m.obs_carteirinha = document.getElementById('edit-obs-carteirinha').value || null;
     
     m.pai = document.getElementById('edit-pai').value.toUpperCase();
     m.mae = document.getElementById('edit-mae').value.toUpperCase();
