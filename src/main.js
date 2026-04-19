@@ -172,8 +172,10 @@ const btnNavCrm = document.getElementById('btn-nav-crm');
 const btnNavEventos = document.getElementById('btn-nav-eventos');
 const modalLogin = document.getElementById('modal-login');
 const btnLogin = document.getElementById('btn-login');
-const adminPass = document.getElementById('admin-pass');
 
+// Auth com permissões
+let currentUser = null;
+let userRole = null;
 let isAdminAuthed = false;
 
 function switchView(view) {
@@ -205,11 +207,8 @@ function switchView(view) {
     if (contAniv) contAniv.style.display = 'none';
     renderEventos();
   } else if (view === 'crm') {
-    if (!isAdminAuthed) {
-      modalLogin.style.display = 'block';
-      adminPass.value = '';
-      adminPass.focus();
-      modalLogin.setAttribute('data-target', 'crm');
+    if (!isAdminAuthed || userRole !== 'admin') {
+      alert('❌ Você não tem permissão para acessar o CRM. Apenas administradores.');
       return;
     }
     viewCrm.style.display = 'block';
@@ -233,12 +232,40 @@ btnNavForm.addEventListener('click', () => switchView('form'));
 btnNavCrm.addEventListener('click', () => switchView('crm'));
 btnNavEventos.addEventListener('click', () => switchView('eventos'));
 
-btnLogin.addEventListener('click', () => {
-   if (adminPass.value === 'ADSAUIPE@2026@') {
+// --- Autenticação com Supabase Auth ---
+async function loginAdmin(email, password) {
+   try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+         email,
+         password
+      });
+
+      if (error) {
+         alert('❌ Email ou senha incorretos: ' + error.message);
+         return;
+      }
+
+      currentUser = data.user;
       isAdminAuthed = true;
+
+      // Buscar role do usuário
+      const { data: roleData, error: roleError } = await supabase
+         .from('user_roles')
+         .select('role')
+         .eq('id', currentUser.id)
+         .single();
+
+      if (roleError) {
+         console.warn('Role não encontrada, usando viewer:', roleError);
+         userRole = 'viewer';
+      } else {
+         userRole = roleData?.role || 'viewer';
+      }
+
+      console.log(`✅ Logado como ${email} (role: ${userRole})`);
       modalLogin.style.display = 'none';
-      
-      // Refresh UI to show admin controls
+      updateAdminUI();
+      updateUIByRole();
       renderCRM();
       renderEventos();
 
@@ -248,9 +275,75 @@ btnLogin.addEventListener('click', () => {
       } else {
          switchView('crm');
       }
-   } else {
-      alert('Senha Incorreta!');
+   } catch (err) {
+      console.error('Erro ao fazer login:', err);
+      alert('Erro ao fazer login: ' + err.message);
    }
+}
+
+async function logoutAdmin() {
+   try {
+      await supabase.auth.signOut();
+      currentUser = null;
+      userRole = null;
+      isAdminAuthed = false;
+      updateAdminUI();
+      updateUIByRole();
+      switchView('form');
+      console.log('✅ Deslogado');
+   } catch (err) {
+      console.error('Erro ao fazer logout:', err);
+   }
+}
+
+function updateAdminUI() {
+   const adminLabel = document.getElementById('admin-user-label');
+   if (adminLabel) {
+      if (currentUser) {
+         adminLabel.innerHTML = `<span style="color: #10b981; font-weight: 600;">✅ ${currentUser.email}</span><br><small>${userRole}</small>`;
+      } else {
+         adminLabel.innerHTML = 'Não autenticado';
+      }
+   }
+}
+
+function updateUIByRole() {
+   const btnAddEvento = document.getElementById('btn-open-add-evento');
+   const btnNavCrm = document.getElementById('btn-nav-crm');
+   const btnLogout = document.getElementById('btn-logout');
+
+   if (!isAdminAuthed) {
+      if (btnAddEvento) btnAddEvento.style.display = 'none';
+      if (btnNavCrm) btnNavCrm.style.display = 'none';
+      if (btnLogout) btnLogout.style.display = 'none';
+      return;
+   }
+
+   if (userRole === 'admin') {
+      if (btnAddEvento) btnAddEvento.style.display = 'block';
+      if (btnNavCrm) btnNavCrm.style.display = 'block';
+      if (btnLogout) btnLogout.style.display = 'block';
+   } else if (userRole === 'coordenador') {
+      if (btnAddEvento) btnAddEvento.style.display = 'block';  // Coordenador edita eventos
+      if (btnNavCrm) btnNavCrm.style.display = 'none';         // Não acessa CRM
+      if (btnLogout) btnLogout.style.display = 'block';
+   } else {
+      if (btnAddEvento) btnAddEvento.style.display = 'none';
+      if (btnNavCrm) btnNavCrm.style.display = 'none';
+      if (btnLogout) btnLogout.style.display = 'none';
+   }
+}
+
+btnLogin.addEventListener('click', async () => {
+   const email = document.getElementById('admin-email').value.trim();
+   const password = document.getElementById('admin-pass').value;
+
+   if (!email || !password) {
+      alert('Preencha email e senha!');
+      return;
+   }
+
+   await loginAdmin(email, password);
 });
 
 modalLogin.addEventListener('click', (e) => {
@@ -921,10 +1014,11 @@ const btnOpenAddEvento = document.getElementById('btn-open-add-evento');
 const closeEvento = document.getElementById('close-evento');
 
 btnOpenAddEvento.addEventListener('click', () => {
-   if (!isAdminAuthed) {
+   if (!isAdminAuthed || !['admin', 'coordenador'].includes(userRole)) {
       modalLogin.style.display = 'block';
-      adminPass.value = '';
-      adminPass.focus();
+      document.getElementById('admin-email').value = '';
+      document.getElementById('admin-pass').value = '';
+      document.getElementById('admin-email').focus();
       modalLogin.setAttribute('data-target', 'evento');
       return;
    }
@@ -1719,6 +1813,7 @@ async function initApp() {
     }
 
     document.body.removeChild(splash);
+    updateUIByRole();  // Atualizar UI baseado em permissões
     renderCRM();
 }
 

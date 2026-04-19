@@ -826,10 +826,19 @@
     <!-- ADMIN LOGIN MODAL -->
     <div id="modal-login" class="modal">
       <div class="modal-content" style="max-width: 400px; text-align: center;">
-        <h2 style="margin-bottom: 1rem;">Acesso Restrito</h2>
-        <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">Insira a senha de administrador para acessar o CRM.</p>
-        <input type="password" id="admin-pass" placeholder="Senha" style="width: 100%; margin-bottom: 1rem; text-align: center; font-size: 1.2rem;">
-        <button id="btn-login" class="btn-primary" style="width: 100%; justify-content: center;">Acessar</button>
+        <h2 style="margin-bottom: 0.5rem;"><i class="ri-shield-line" style="color: var(--primary);"></i> Acesso Admin</h2>
+        <p style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">Faça login com suas credenciais.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem;">
+          <input type="email" id="admin-email" placeholder="seu@email.com.br" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-glass); border-radius: 8px; font-size: 1rem;" required>
+          <input type="password" id="admin-pass" placeholder="Senha" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-glass); border-radius: 8px; font-size: 1rem;" required>
+          <div id="admin-user-label" style="font-size: 0.85rem; color: var(--text-muted); min-height: 30px; display: flex; align-items: center; justify-content: center; padding: 5px; border-radius: 6px; background: rgba(0,0,0,0.02);">
+            Não autenticado
+          </div>
+        </div>
+
+        <button id="btn-login" class="btn-primary" style="width: 100%; justify-content: center; margin-bottom: 8px;">🔓 Fazer Login</button>
+        <button id="btn-logout" class="btn-secondary" style="width: 100%; justify-content: center; display: none;" onclick="logoutAdmin()">🚪 Sair</button>
       </div>
     </div>
 
