@@ -274,6 +274,21 @@ async function loginAdmin(email, password) {
       modalLogin.style.display = 'none';
       updateAdminUI();
       updateUIByRole();
+
+      // Recarrega membros do Supabase (RLS libera após autenticação)
+      try {
+         const { data: dbMembros, error: errM } = await supabase.from('membros').select('*');
+         if (!errM && dbMembros) {
+            membros = dbMembros;
+            historyStack = [JSON.stringify(membros)];
+            historyIndex = 0;
+            salvarMembrosLocal();
+            console.log(`📋 ${membros.length} membro(s) carregado(s) após login`);
+         }
+      } catch (e) {
+         console.warn('Não foi possível recarregar membros:', e);
+      }
+
       renderCRM();
       renderEventos();
 
