@@ -1,6 +1,12 @@
 import './style.css';
 import { supabase } from './lib/supabase.js';
 
+const DEPARTAMENTOS = [
+  "Criancas", "Adolescentes", "Jovens", "Senhoras", "Varoes", "Louvor",
+  "Musica", "Ensino", "Missoes", "Evangelismo", "Intercessao", "Obreiros",
+  "Diaconato", "Secretaria", "Tesouraria", "Portaria", "Midia", "Limpeza"
+];
+
 const CONGREGRACOES = [
   "Alto da Vitória", "Areal", "Barro Branco", "Castro", "Curralinho", "Diogo",
   "Estiva", "Foz do Imbassai", "Haras", "Imbassai", "Jardim Imbassai", "Patioba",
@@ -86,6 +92,14 @@ function sanitizarEvento(ev) {
       historico: ev.historico || [],
       data_criacao: ev.data_criacao || new Date().toISOString(),
    };
+}
+
+function withTimeout(promise, ms, label) {
+   let timer;
+   const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} demorou para responder`)), ms);
+   });
+   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 // --- Supabase CRUD ---
@@ -2092,12 +2106,20 @@ async function initApp() {
 
     try {
         setSplashMsg('Testando conex\u00e3o com Supabase...');
-        const { data: dbMembros, error: errM } = await supabase.from('membros').select('*');
+        const { data: dbMembros, error: errM } = await withTimeout(
+            supabase.from('membros').select('*'),
+            8000,
+            'Consulta de membros'
+        );
         if (errM) throw errM;
         console.log('%c[Supabase] \u2705 Conex\u00e3o bem-sucedida!', 'color: #22c55e; font-weight: bold;', `${(dbMembros||[]).length} membro(s) carregado(s).`);
 
         setSplashMsg('Buscando eventos...');
-        const { data: dbEventos, error: errE } = await supabase.from('eventos').select('*');
+        const { data: dbEventos, error: errE } = await withTimeout(
+            supabase.from('eventos').select('*'),
+            8000,
+            'Consulta de eventos'
+        );
         if (errE) throw errE;
 
         membros = dbMembros || [];
@@ -2110,14 +2132,22 @@ async function initApp() {
         if (membros.length === 0 && localMembros.length > 0) {
             setSplashMsg('Migrando membros locais...');
             for (const m of localMembros) await dbSalvarMembro(m);
-            const { data } = await supabase.from('membros').select('*');
+            const { data } = await withTimeout(
+                supabase.from('membros').select('*'),
+                8000,
+                'Recarga de membros'
+            );
             membros = data || localMembros;
         }
 
         if (eventos.length === 0 && localEventos.length > 0) {
             setSplashMsg('Migrando eventos locais...');
             for (const ev of localEventos) await dbSalvarEvento(ev);
-            const { data } = await supabase.from('eventos').select('*');
+            const { data } = await withTimeout(
+                supabase.from('eventos').select('*'),
+                8000,
+                'Recarga de eventos'
+            );
             eventos = data || localEventos;
         }
 
