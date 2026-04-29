@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx vite *)",
-      "Bash(curl -s https://api.github.com/repos/eudrii/ad-sauipe-crm/actions/runs?per_page=1)"
+      "Bash(curl -s https://api.github.com/repos/eudrii/ad-sauipe-crm/actions/runs?per_page=1)",
+      "Bash(npm run *)",
+      "Bash(awk '/^function renderEventos/,/^}$/ {print NR\": \"$0}' src/main.js)"
     ]
   }
 }

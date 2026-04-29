@@ -7,11 +7,6 @@ const CONGREGRACOES = [
   "Santo Antônio", "Sauipe (Sede)", "Sitio Santo Antônio", "Vila Mar", "Vila Margarida", "Todo o Campo"
 ];
 
-const DEPARTAMENTOS = [
-  "JOVENS", "ADOLESCENTES", "CRIANÇAS", "INFANTIL", "SENHORAS", "VARÕES", 
-  "MISSÕES", "LOUVOR / MÚSICA", "SECRETARIA", "TESOURARIA", "PATRIMÔNIO", 
-  "EDUCAÇÃO CRISTÃ (EBD)", "CAMPANHA EVANGELIZADORA", "CIRCULO DE ORAÇÃO", "CAMPO"
-];
 
 const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -94,10 +89,26 @@ function sanitizarEvento(ev) {
 }
 
 // --- Supabase CRUD ---
+// Para cadastros novos (anônimos) — usa INSERT puro (não upsert)
+async function dbInserirMembro(m) {
+   const payload = sanitizarMembro(m);
+   const { error } = await supabase.from('membros').insert(payload);
+   if (error) {
+      console.error('Erro inserirMembro:', error.message, error.details);
+      return false;
+   }
+   return true;
+}
+
+// Para edições de admin — usa UPSERT (requer autenticação)
 async function dbSalvarMembro(m) {
    const payload = sanitizarMembro(m);
    const { error } = await supabase.from('membros').upsert(payload);
-   if (error) console.error('Erro salvarMembro:', error.message, error.details);
+   if (error) {
+      console.error('Erro salvarMembro:', error.message, error.details);
+      return false;
+   }
+   return true;
 }
 
 async function dbExcluirMembro(id) {
@@ -443,7 +454,7 @@ function adicionarCampoCargo() {
         <input type="text" class="cargo-f uppercase-field" placeholder="CARGO (Ex: Líder)" style="margin-bottom:0;">
      </div>
      <div class="input-group" style="flex: 1;">
-        <input type="text" class="cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;" list="lista-departamentos">
+         <input type="text" class="cargo-d uppercase-field" placeholder="DEPART. (Ex: Jovens)" style="margin-bottom:0;">
      </div>
      <div class="input-group" style="flex: 1;">
         <select class="cargo-c" style="margin-bottom:0;">
@@ -641,13 +652,28 @@ btnConfirmarCorrigir.addEventListener('click', () => {
     modalConfirmar.style.display = 'none';
 });
 
-btnConfirmarEnviar.addEventListener('click', () => {
+btnConfirmarEnviar.addEventListener('click', async () => {
     if (!pendingMembro) return;
     const m = pendingMembro;
     pendingMembro = null;
+
+    // Desabilita botão enquanto envia
+    btnConfirmarEnviar.disabled = true;
+    btnConfirmarEnviar.innerHTML = '<i class="ri-loader-4-line" style="animation: spin 1s linear infinite;"></i> Enviando...';
+
+    const ok = await dbInserirMembro(m);
+
+    btnConfirmarEnviar.disabled = false;
+    btnConfirmarEnviar.innerHTML = '<i class="ri-check-double-line"></i> Confirmar e Enviar';
+
+    if (!ok) {
+        alert('❌ Erro ao salvar no servidor. Verifique sua conexão e tente novamente.');
+        pendingMembro = m; // restaura para tentar novamente
+        return;
+    }
+
     membros.push(m);
     salvarMembros();
-    dbSalvarMembro(m); // background sync
     modalConfirmar.style.display = 'none';
     memberForm.reset();
     listaCargos.innerHTML = '';
